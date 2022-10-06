@@ -3,7 +3,6 @@ module github.com/fabiofenoglio/excelconv
 go 1.17
 
 require (
-	github.com/google/uuid v1.3.0
 	github.com/sirupsen/logrus v1.9.0
 	github.com/spf13/cobra v1.5.0
 	github.com/xuri/excelize/v2 v2.6.1
