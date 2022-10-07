@@ -8,27 +8,18 @@ type StyleEntry struct {
 }
 
 type Styles struct {
-	Common StyleEntry
+	Common  StyleEntry
+	Warning StyleEntry
 }
 
 type KnownRoom struct {
 	Styles
+	Name  string
+	Slots uint
 }
 
 type KnownOperator struct {
 	Styles
-}
-
-var availableColors = []string{
-	"#7fb574",
-	"#8c6a3e",
-	"#a16052",
-	"#4c6f9c",
-	"#65508a",
-	"#4bada0",
-	"#c7b88f",
-	"#a15da0",
-	"#d9c7d0",
 }
 
 var (
@@ -37,184 +28,47 @@ var (
 
 	knownRoomMap     map[string]*KnownRoom
 	knownOperatorMap map[string]*KnownOperator
-
-	dayBoxStyle = StyleEntry{
-		Style: &excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "center",
-				Vertical:   "center",
-			},
-			Fill: excelize.Fill{
-				Type:    "pattern",
-				Color:   []string{"#DDDDDD"},
-				Pattern: 1,
-			},
-			Border: []excelize.Border{},
-		},
-	}
-	dayRoomBoxStyle = StyleEntry{
-		Style: &excelize.Style{
-			Alignment: &excelize.Alignment{
-				Horizontal: "center",
-				Vertical:   "center",
-			},
-			Fill: excelize.Fill{},
-			Border: []excelize.Border{
-				{Type: "left", Color: "333333", Style: 4},
-				{Type: "right", Color: "333333", Style: 4},
-				{Type: "top", Color: "333333", Style: 4},
-				{Type: "bottom", Color: "333333", Style: 4},
-			},
-		},
-	}
-	dayHeaderStyle = StyleEntry{
-		Style: &excelize.Style{
-			Font: &excelize.Font{
-				Size: 16,
-			},
-			Alignment: &excelize.Alignment{
-				Horizontal: "center",
-				Vertical:   "center",
-			},
-			Fill: excelize.Fill{
-				Type:    "pattern",
-				Color:   []string{"#947521"},
-				Pattern: 1,
-			},
-			Border: []excelize.Border{
-				{Type: "left", Color: "333333", Style: 1},
-				{Type: "right", Color: "333333", Style: 1},
-				{Type: "top", Color: "333333", Style: 1},
-				{Type: "bottom", Color: "333333", Style: 1},
-			},
-		},
-	}
-	verticalTextStyle = StyleEntry{
-		Style: &excelize.Style{
-			Font: &excelize.Font{
-				Size: 12,
-			},
-			Alignment: &excelize.Alignment{
-				TextRotation: 90,
-			},
-		},
-	}
 )
-
-func commonRoomStyle() Styles {
-	return Styles{
-		Common: StyleEntry{
-			Style: &excelize.Style{
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#E0EBF5"},
-					Pattern: 1,
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "0000FF", Style: 2},
-					{Type: "right", Color: "0000FF", Style: 2},
-					{Type: "top", Color: "0000FF", Style: 1},
-					{Type: "bottom", Color: "0000FF", Style: 1},
-				},
-			},
-		},
-	}
-}
-
-func commonOperatorStyle() Styles {
-	return Styles{
-		Common: StyleEntry{
-			Style: &excelize.Style{
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#E0EBF5"},
-					Pattern: 1,
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "0000FF", Style: 1},
-					{Type: "right", Color: "0000FF", Style: 1},
-					{Type: "top", Color: "0000FF", Style: 4},
-					{Type: "bottom", Color: "0000FF", Style: 4},
-				},
-			},
-		},
-	}
-}
 
 func init() {
 	// https://xuri.me/excelize/en/style.html#border
 
 	knownRoomMap = make(map[string]*KnownRoom)
-	knownRoomMap["planetario"] = &KnownRoom{
-		Styles: commonRoomStyle(),
-	}
 	knownRoomMap[""] = &KnownRoom{
-		Styles: Styles{
-			Common: StyleEntry{
-				Style: &excelize.Style{
-					Alignment: &excelize.Alignment{
-						Horizontal: "center",
-						Vertical:   "center",
-					},
-					Fill: excelize.Fill{
-						Type:    "pattern",
-						Color:   []string{"#E02222"},
-						Pattern: 1,
-					},
-					Font: &excelize.Font{
-						Color: "#FFFFFF",
-					},
-					Border: []excelize.Border{
-						{Type: "left", Color: "FFFFFF", Style: 2},
-						{Type: "right", Color: "FFFFFF", Style: 2},
-						{Type: "top", Color: "FFFFFF", Style: 1},
-						{Type: "bottom", Color: "FFFFFF", Style: 1},
-					},
-				},
-			},
-		},
+		Styles: noRoomStyle,
+	}
+
+	knownRoomMap["planetario"] = &KnownRoom{
+		Name:   "Planetario",
+		Styles: buildForRoom("#E0EBF5"),
+		Slots:  4,
+	}
+	knownRoomMap["aula 2"] = &KnownRoom{
+		Name:   "Aula 2",
+		Styles: buildForRoom("#33CC33"),
+		Slots:  2,
+	}
+	knownRoomMap["aula inutile"] = &KnownRoom{
+		Name:   "Aula inutile",
+		Styles: buildForRoom("#222222"),
+		Slots:  3,
 	}
 
 	knownOperatorMap = make(map[string]*KnownOperator)
-	knownOperatorMap["a"] = &KnownOperator{
-		Styles: commonOperatorStyle(),
-	}
 	knownOperatorMap[""] = &KnownOperator{
-		Styles: Styles{
-			Common: StyleEntry{
-				Style: &excelize.Style{
-					Alignment: &excelize.Alignment{
-						Horizontal: "center",
-						Vertical:   "center",
-					},
-					Fill: excelize.Fill{
-						Type:    "pattern",
-						Color:   []string{"#E02222"},
-						Pattern: 1,
-					},
-					Font: &excelize.Font{
-						Color: "#FFFFFF",
-					},
-					Border: []excelize.Border{
-						{Type: "left", Color: "FFFFFF", Style: 1},
-						{Type: "right", Color: "FFFFFF", Style: 1},
-						{Type: "top", Color: "FFFFFF", Style: 4},
-						{Type: "bottom", Color: "FFFFFF", Style: 4},
-					},
-				},
-			},
-		},
+		Styles: noOperatorStyle,
 	}
+
+	knownOperatorMap["a"] = &KnownOperator{
+		Styles: buildForOperator("#E0EBF5"),
+	}
+
 }
+
 func registerStyleEntry(e *StyleEntry, f *excelize.File) {
+	if e == nil || e.Style == nil {
+		return
+	}
 	if e.StyleID > 0 {
 		return
 	}
@@ -230,16 +84,18 @@ func RegisterStyles(f *excelize.File) {
 
 	for _, entry := range knownRoomMap {
 		registerStyleEntry(&entry.Common, f)
+		registerStyleEntry(&entry.Warning, f)
 	}
 
 	for _, entry := range knownOperatorMap {
 		registerStyleEntry(&entry.Common, f)
+		registerStyleEntry(&entry.Warning, f)
 	}
 
 	registerStyleEntry(&dayBoxStyle, f)
 	registerStyleEntry(&dayRoomBoxStyle, f)
 	registerStyleEntry(&dayHeaderStyle, f)
-	registerStyleEntry(&verticalTextStyle, f)
+	registerStyleEntry(&toBeFilledStyle, f)
 }
 
 func GetEntryForOperator(code string) KnownOperator {
@@ -247,9 +103,9 @@ func GetEntryForOperator(code string) KnownOperator {
 		return *entry
 	}
 
-	style := commonOperatorStyle()
-	style.Common.Style.Fill.Color = []string{pickColor()}
+	style := buildForOperator(pickColor())
 	registerStyleEntry(&style.Common, registerTarget)
+	registerStyleEntry(&style.Warning, registerTarget)
 
 	knownOperatorMap[code] = &KnownOperator{
 		Styles: style,
@@ -263,8 +119,7 @@ func GetEntryForRoom(code string) KnownRoom {
 		return *entry
 	}
 
-	style := commonRoomStyle()
-	style.Common.Style.Fill.Color = []string{pickColor()}
+	style := buildForRoom(pickColor())
 	registerStyleEntry(&style.Common, registerTarget)
 
 	knownRoomMap[code] = &KnownRoom{

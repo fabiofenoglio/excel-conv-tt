@@ -12,6 +12,8 @@ import (
 	_ "time/tzdata"
 
 	"github.com/xuri/excelize/v2"
+
+	"github.com/fabiofenoglio/excelconv/model"
 )
 
 const (
@@ -35,32 +37,6 @@ func init() {
 	}
 }
 
-type Cell struct {
-	C         uint
-	R         uint
-	SheetName string
-}
-
-func (c Cell) ColumnName() string {
-	return toColumnName(c.C)
-}
-func (c Cell) Code() string {
-	return fmt.Sprintf("%s%d", toColumnName(c.C), c.R)
-}
-func (c Cell) String() string {
-	if c.SheetName != "" {
-		return fmt.Sprintf("!%s:%s", c.SheetName, c.Code())
-	}
-	return c.Code()
-}
-func (c Cell) Copy() Cell {
-	return Cell{
-		C:         c.C,
-		R:         c.R,
-		SheetName: c.SheetName,
-	}
-}
-
 func Parse(input string) (Parsed, error) {
 	zero := Parsed{}
 	log := GetLogger()
@@ -79,7 +55,7 @@ func Parse(input string) (Parsed, error) {
 		}
 	}()
 
-	startingHeaderCell := Cell{1, 4, "Organizzazione"}
+	startingHeaderCell := model.NewCell("Organizzazione", 1, 4)
 
 	columnNameToFieldNameMap := make(map[string]string)
 	sampleRow := &Row{}
@@ -98,7 +74,7 @@ func Parse(input string) (Parsed, error) {
 	fieldNameToColumnNumberMap := make(map[string]uint)
 
 	for {
-		cell, err := f.GetCellValue(currentHeaderCell.SheetName, currentHeaderCell.Code())
+		cell, err := f.GetCellValue(currentHeaderCell.SheetName(), currentHeaderCell.Code())
 		if err != nil {
 			return zero, fmt.Errorf("error reading header cell %s: %w", currentHeaderCell.Code(), err)
 		}
@@ -113,13 +89,13 @@ func Parse(input string) (Parsed, error) {
 		if mapsToFieldName, ok := columnNameToFieldNameMap[strings.TrimSpace(cell)]; ok {
 			log.Infof("column %s with header '%s' maps to known field '%s'", currentHeaderCell.ColumnName(), cell, mapsToFieldName)
 
-			columnNumberToFieldNameMap[currentHeaderCell.C] = mapsToFieldName
-			fieldNameToColumnNumberMap[mapsToFieldName] = currentHeaderCell.C
+			columnNumberToFieldNameMap[currentHeaderCell.Column()] = mapsToFieldName
+			fieldNameToColumnNumberMap[mapsToFieldName] = currentHeaderCell.Column()
 		} else {
 			log.Warnf("column %s with header '%s' does not map to any known field", currentHeaderCell.ColumnName(), cell)
 		}
 
-		currentHeaderCell.C++
+		currentHeaderCell.MoveRight(1)
 	}
 
 	for i := 0; i < val.NumField(); i++ {
@@ -137,7 +113,7 @@ func Parse(input string) (Parsed, error) {
 
 		if columnName != "" {
 			if mappedByColumnNumer, ok := fieldNameToColumnNumberMap[field.Name]; ok {
-				log.Infof("field '%s' is mapped by column '%s'", field.Name, toColumnName(mappedByColumnNumer))
+				log.Infof("field '%s' is mapped by column '%d'", field.Name, mappedByColumnNumer)
 			} else {
 				errMsg := fmt.Sprintf("field '%s' is NOT mapped by any column", field.Name)
 				if required {
@@ -155,20 +131,16 @@ func Parse(input string) (Parsed, error) {
 
 	results := make([]ParsedRow, 0, 20)
 
-	currentCell := startingHeaderCell
-	currentCell.R++
+	currentCell := startingHeaderCell.AtBottom(1)
 
 	for {
 		row := Row{}
 		anyNonNil := false
 
 		for fieldName, columnNumber := range fieldNameToColumnNumberMap {
-			cell := Cell{
-				R:         currentCell.R,
-				C:         columnNumber,
-				SheetName: currentCell.SheetName,
-			}
-			cellContent, err := f.GetCellValue(cell.SheetName, cell.Code())
+			cell := currentCell.AtColumn(columnNumber)
+
+			cellContent, err := f.GetCellValue(cell.SheetName(), cell.Code())
 			if err != nil {
 				return zero, fmt.Errorf("error reading content cell %s: %w", cell.String(), err)
 			}
@@ -194,21 +166,21 @@ func Parse(input string) (Parsed, error) {
 
 		err := validate(row)
 		if err != nil {
-			errMsg := fmt.Sprintf("error validating row %d", currentCell.R)
+			errMsg := fmt.Sprintf("error validating row %d", currentCell.Row())
 			log.WithError(err).Errorf(errMsg+": %s", err.Error())
 			return zero, fmt.Errorf(errMsg+": %w", err)
 		}
 
 		parsed, err := parseRow(row)
 		if err != nil {
-			errMsg := fmt.Sprintf("error parsing row %d", currentCell.R)
+			errMsg := fmt.Sprintf("error parsing row %d", currentCell.Row())
 			log.WithError(err).Errorf(errMsg+": %s", err.Error())
 			return zero, fmt.Errorf(errMsg+": %w", err)
 		}
 
 		results = append(results, parsed)
 
-		currentCell.R++
+		currentCell.MoveBottom(1)
 	}
 
 	roomsMap := make(map[string]Room)
@@ -220,6 +192,16 @@ func Parse(input string) (Parsed, error) {
 		}
 		if a.Operator.Code != "" {
 			operatorsMap[a.Operator.Code] = a.Operator
+		}
+	}
+
+	// import room definitions from database if not yet found
+	for k, def := range knownRoomMap {
+		if _, ok := roomsMap[k]; !ok {
+			roomsMap[k] = Room{
+				Name: def.Name,
+				Code: k,
+			}
 		}
 	}
 
@@ -347,7 +329,7 @@ func parseRow(r Row) (ParsedRow, error) {
 		}
 	}
 
-	return ParsedRow{
+	r2 := ParsedRow{
 		Raw:               r,
 		StartAt:           start,
 		EndAt:             end,
@@ -357,5 +339,26 @@ func parseRow(r Row) (ParsedRow, error) {
 		NumPaganti:        numPaganti,
 		NumGratuiti:       numGratuiti,
 		NumAccompagnatori: numAccompagnatori,
-	}, nil
+	}
+
+	r2.Warnings = getWarnings(r2)
+
+	return r2, nil
+}
+
+func getWarnings(act ParsedRow) []string {
+	out := make([]string, 0)
+	if act.Room.Code == "" {
+		out = append(out, "NESSUNA AULA O RISORSA ASSEGNATA")
+	}
+	if act.Operator.Code == "" {
+		out = append(out, "NESSUN EDUCATORE ASSEGNATO")
+	}
+	if act.Raw.LinguaAttivita != "" && strings.ToLower(act.Raw.LinguaAttivita) != "it" {
+		out = append(out, "ATTIVITA PREVISTA IN LINGUA: "+act.Raw.LinguaAttivita)
+	}
+	if act.NumGratuiti > 0 {
+		out = append(out, fmt.Sprintf("SONO PRESENTI %d INGRESSI GRATUITI", act.NumGratuiti))
+	}
+	return out
 }

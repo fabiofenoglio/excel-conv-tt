@@ -7,7 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/xuri/excelize/v2"
+
+	"github.com/fabiofenoglio/excelconv/model"
 )
 
 type WriteContext struct {
@@ -18,8 +21,12 @@ type WriteContext struct {
 	outputFile  *excelize.File
 }
 
-func Run(input string) error {
+func Run(args model.Args) error {
+	input := args.PositionalArgs.InputFile
 	log := GetLogger()
+	if args.Verbose {
+		log.SetLevel(logrus.DebugLevel)
+	}
 
 	// parse the specified input file
 
@@ -41,12 +48,6 @@ func Run(input string) error {
 	groupedByStartDate := GroupByStartDay(parsed.Rows)
 	log.Infof("found activities spanning %d different days", len(groupedByStartDate))
 
-	groupedByRoom := GroupByRoom(parsed.Rows)
-	log.Infof("found activities occupying %d different rooms", len(groupedByRoom))
-
-	groupedByOperator := GroupByOperator(parsed.Rows)
-	log.Infof("found activities occupying %d different operators", len(groupedByOperator))
-
 	f := excelize.NewFile()
 	RegisterStyles(f)
 
@@ -64,46 +65,40 @@ func Run(input string) error {
 		groupedByStartDate[len(groupedByStartDate)-1].Rows[0].StartAt.Format("0201"),
 	)
 
-	startingCell := Cell{C: 2, R: 2, SheetName: sheetName}
-	// Create a new sheet.
+	startingCell := model.NewCell(sheetName, 2, 1)
 
-	f.SetSheetName("Sheet1", startingCell.SheetName)
+	// Rename the default sheet.
+	f.SetSheetName("Sheet1", startingCell.SheetName())
 
 	// Set active sheet of the workbook.
-	f.SetActiveSheet(f.GetSheetIndex(startingCell.SheetName))
+	f.SetActiveSheet(f.GetSheetIndex(startingCell.SheetName()))
 
-	if err := f.SetRowHeight(startingCell.SheetName, 1, 10); err != nil {
+	if err := f.SetRowHeight(startingCell.SheetName(), 1, 20); err != nil {
 		return err
 	}
-	if err := f.SetRowHeight(startingCell.SheetName, 2, 30); err != nil {
+	if err := f.SetRowHeight(startingCell.SheetName(), 2, 30); err != nil {
 		return err
 	}
-	if err := f.SetRowHeight(startingCell.SheetName, 3, 20); err != nil {
+	if err := f.SetRowHeight(startingCell.SheetName(), 3, 20); err != nil {
 		return err
 	}
-
-	if err := f.SetColWidth(startingCell.SheetName, "A", "A", 3); err != nil {
+	if err := f.SetColWidth(startingCell.SheetName(), "A", "A", 3); err != nil {
 		return err
 	}
 
 	// MEGA OUTPUT WRITE
 	cell := startingCell
 	for _, groupByDay := range groupedByStartDate {
-		cell.R = startingCell.R
-		finalCell, err := writeDay(wc, groupByDay, cell)
+		log.Infof("writing day %v", groupByDay.Key)
+
+		cell.MoveRow(startingCell.Row())
+		drawBox, err := writeDay(wc, groupByDay, cell, log)
 		if err != nil {
 			return fmt.Errorf("error writing row: %w", err)
 		}
-		cell.C = finalCell.C + 2
-		cell.R = finalCell.R
-	}
 
-	for i := 0; i < 20; i++ {
-		r := cell.Copy()
-		r.R += uint(i + 1)
-		if err := f.SetRowHeight(r.SheetName, int(r.R), 3); err != nil {
-			return err
-		}
+		cell.MoveRow(drawBox.BottomRight().Row())
+		cell.MoveColumn(drawBox.TopRight().Column() + 2)
 	}
 
 	// Save spreadsheet by the given path.
@@ -117,50 +112,75 @@ func Run(input string) error {
 	return nil
 }
 
-func writeDay(c WriteContext, day GroupedRows, startCell Cell) (Cell, error) {
-	cursor := startCell
-	f := c.outputFile
-
-	if err := f.SetCellValue(cursor.SheetName, cursor.Code(),
-		fmt.Sprintf("%d", day.Rows[0].StartAt.Year())); err != nil {
-		return cursor, err
-	}
-	cursor.C++
-	cursor.R++
-
-	maxC := cursor.C
-	maxR := cursor.R
-
-	groupedByRoom := GroupByRoom(day.Rows)
+func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus.Logger) (model.CellBox, error) {
+	zero := model.CellBox{}
 
 	minGroupWidth := uint(12)
 	minGroupWidthPerSlot := uint(4)
+	minDayWidthInCells := uint(20)
+	boxCellHeight := float64(20)
+	moreSlotsAtBottom := 0 // add if you want to show some empty time rows after the last one
+
+	cursor := startCell
+	f := c.outputFile
+
+	cursor.MoveBottom(1)
+
+	if err := f.SetCellValue(cursor.SheetName(), cursor.Code(),
+		fmt.Sprintf("%d", day.Rows[0].StartAt.Year())); err != nil {
+		return zero, err
+	}
+	cursor.MoveRight(1)
+	cursor.MoveBottom(1)
+
+	maxC := cursor.Column()
+	maxR := cursor.Row()
+
+	groupedByRoom := GroupByRoom(c.allData, day.Rows)
 
 	roomColumnNumbers := make(map[string]uint)
+	roomWidths := make(map[string]uint)
+
+	// write the header with the columns / rooms
 
 	for _, group := range groupedByRoom {
+		log.Infof("writing header for room group %s", group.Key)
+
 		room := c.allData.RoomsMap[group.Key]
 		numActs := uint(len(group.Rows))
+
+		if room.Code == "" && numActs == 0 {
+			continue
+		}
+
+		roomInfo := GetEntryForRoom(room.Code)
+		if numActs == 0 && roomInfo.Slots == 0 {
+			continue
+		}
+
+		if roomInfo.Slots > 0 && numActs < roomInfo.Slots {
+			numActs = roomInfo.Slots
+		}
 
 		toWrite := room.Name
 		if room.Code == "" {
 			toWrite = "???"
 		}
 
-		if err := f.SetCellValue(cursor.SheetName, cursor.Code(), toWrite); err != nil {
-			return cursor, err
+		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
+			return zero, err
 		}
 
-		roomColumnNumbers[room.Code] = cursor.C
+		roomColumnNumbers[room.Code] = cursor.Column()
+		roomWidths[room.Code] = numActs
 
 		desiredWidth := minGroupWidth
 
 		if numActs > 1 {
-			mergeUpTo := cursor.Copy()
-			mergeUpTo.C += (numActs - 1)
+			mergeUpTo := cursor.AtRight(numActs - 1)
 
-			if err := f.MergeCell(cursor.SheetName, cursor.Code(), mergeUpTo.Code()); err != nil {
-				return cursor, err
+			if err := f.MergeCell(cursor.SheetName(), cursor.Code(), mergeUpTo.Code()); err != nil {
+				return zero, err
 			}
 
 			altWidth := numActs * minGroupWidthPerSlot
@@ -169,34 +189,47 @@ func writeDay(c WriteContext, day GroupedRows, startCell Cell) (Cell, error) {
 			}
 
 			if err := f.SetColWidth(
-				cursor.SheetName,
+				cursor.SheetName(),
 				cursor.ColumnName(),
 				mergeUpTo.ColumnName(),
 				float64(desiredWidth)/float64(numActs),
 			); err != nil {
-				return cursor, err
+				return zero, err
 			}
 
 		} else {
-			if err := f.SetColWidth(cursor.SheetName, cursor.ColumnName(), cursor.ColumnName(), float64(desiredWidth)); err != nil {
-				return cursor, err
+			if err := f.SetColWidth(cursor.SheetName(), cursor.ColumnName(), cursor.ColumnName(), float64(desiredWidth)); err != nil {
+				return zero, err
 			}
 		}
 
-		cursor.C += numActs
-		maxC = cursor.C
+		cursor.MoveRight(numActs)
 
 		// add 1 additional column to leave some space
-		if err := f.SetColWidth(cursor.SheetName, cursor.ColumnName(), cursor.ColumnName(), 2); err != nil {
-			return cursor, err
+		if err := f.SetColWidth(cursor.SheetName(), cursor.ColumnName(), cursor.ColumnName(), 2); err != nil {
+			return zero, err
 		}
-		cursor.C++
-		maxC++
+
+		cursor.MoveRight(1)
+		maxC = cursor.Column()
+	}
+
+	// ensure the day block is wide at least as the desired minDayWidthInCells
+	actualWidth := cursor.Column() - startCell.Column()
+	if actualWidth < minDayWidthInCells {
+		diff := uint(minDayWidthInCells - actualWidth)
+
+		cursorTo := cursor.AtRight(diff)
+		if err := f.SetColWidth(cursor.SheetName(), cursor.ColumnName(), cursorTo.ColumnName(), float64(minGroupWidthPerSlot)); err != nil {
+			return zero, err
+		}
+
+		cursor.MoveRight(diff)
+		maxC = cursor.Column()
 	}
 
 	// reset cursor to box start
-	cursor.C = startCell.C
-	cursor.R = startCell.R + 2
+	cursor = startCell.AtBottom(3)
 
 	minHourToShowForThisDay, maxHourToShowForThisDay := GetMaxHoursRangeToDisplay(day.Rows)
 
@@ -210,10 +243,8 @@ func writeDay(c WriteContext, day GroupedRows, startCell Cell) (Cell, error) {
 	rolledOver := false
 	firstTime := currentTime
 	breaking := false
-	margin := 0 // add if you want to show some empty time rows after the last one
 
-	boxCellHeight := float64(20)
-
+	log.Infof("writing time columns starting from %s", currentTime.String())
 	for {
 		effectiveHour := currentTime.Hour()
 		if rolledOver {
@@ -233,14 +264,14 @@ func writeDay(c WriteContext, day GroupedRows, startCell Cell) (Cell, error) {
 			toWrite = currentTime.Format(layoutTimeOnlyInReadableFormat)
 		}
 
-		if err := f.SetCellValue(cursor.SheetName, cursor.Code(), toWrite); err != nil {
-			return cursor, err
+		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
+			return zero, err
 		}
-		if err := f.SetRowHeight(cursor.SheetName, int(cursor.R), boxCellHeight); err != nil {
-			return cursor, err
+		if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), boxCellHeight); err != nil {
+			return zero, err
 		}
-		cursor.R++
-		maxR = cursor.R
+		cursor.MoveBottom(1)
+		maxR = cursor.Row()
 
 		currentTime = currentTime.Add(time.Duration(c.minutesStep) * time.Minute)
 
@@ -252,9 +283,11 @@ func writeDay(c WriteContext, day GroupedRows, startCell Cell) (Cell, error) {
 			if effectiveHour > c.maxHour {
 				breaking = true
 			}
-		} else {
-			if margin > 0 {
-				margin--
+		}
+
+		if breaking {
+			if moreSlotsAtBottom > 0 {
+				moreSlotsAtBottom--
 			} else {
 				break
 			}
@@ -265,47 +298,49 @@ func writeDay(c WriteContext, day GroupedRows, startCell Cell) (Cell, error) {
 
 	// draw the box for the whole day
 	boxStart := startCell.Copy()
+
 	boxEnd := startCell.Copy()
-	boxEnd.C = maxC - 1
-	boxEnd.R = maxR - 1
-	if err := f.SetCellStyle(startCell.SheetName, boxStart.Code(), boxEnd.Code(), dayBoxStyle.StyleID); err != nil {
-		return cursor, err
+	boxEnd.MoveColumn(maxC - 1)
+	boxEnd.MoveRow(maxR - 1)
+
+	if err := f.SetCellStyle(startCell.SheetName(), boxStart.Code(), boxEnd.Code(), dayBoxStyle.StyleID); err != nil {
+		return zero, err
 	}
 
 	// draw the box for each room
 	for _, group := range groupedByRoom {
+		log.Infof("drawing boxes for room %s", group.Key)
+
+		if _, ok := roomWidths[group.Key]; !ok {
+			log.Infof("skipping room %s", group.Key)
+			continue
+		}
+
 		columnsForRoomStartAt := roomColumnNumbers[group.Key]
 
-		boxStart := startCell.Copy()
-		boxStart.C = columnsForRoomStartAt
-		boxStart.R = startCell.R + 2
+		boxStart := startCell.AtColumn(columnsForRoomStartAt).AtBottom(3)
+		boxEnd := boxStart.AtRight(roomWidths[group.Key] - 1).AtRow(maxR - 1)
 
-		boxEnd := boxStart.Copy()
-		boxEnd.C += uint(len(group.Rows) - 1)
-		boxEnd.R = maxR - 1
-
-		if err := f.SetCellStyle(startCell.SheetName, boxStart.Code(), boxEnd.Code(), dayRoomBoxStyle.StyleID); err != nil {
-			return cursor, err
+		if err := f.SetCellStyle(startCell.SheetName(), boxStart.Code(), boxEnd.Code(), dayRoomBoxStyle.StyleID); err != nil {
+			return zero, err
 		}
 
-		boxHeaderStart := boxStart.Copy()
-		boxHeaderStart.R--
-		boxHeaderEnd := boxHeaderStart.Copy()
-		boxHeaderEnd.C = boxEnd.C
+		boxHeaderStart := boxStart.AtTop(1)
+		boxHeaderEnd := boxHeaderStart.AtColumn(boxEnd.Column())
 
 		roomInfo := GetEntryForRoom(group.Key)
-		if err := f.SetCellStyle(cursor.SheetName, boxHeaderStart.Code(), boxHeaderEnd.Code(), roomInfo.Styles.Common.StyleID); err != nil {
-			return cursor, err
+		if err := f.SetCellStyle(cursor.SheetName(), boxHeaderStart.Code(), boxHeaderEnd.Code(), roomInfo.Styles.Common.StyleID); err != nil {
+			return zero, err
 		}
-
 	}
 
 	// now place the activities
-	cursor.R = startCell.R
-	cursor.C = startCell.C
+	cursor.MoveRow(startCell.Row())
+	cursor.MoveColumn(startCell.Column())
 
 	for _, group := range groupedByRoom {
-		// TODO add explicit sorting here?
+		log.Infof("placing activities for room %s", group.Key)
+
 		for actIndex, act := range group.Rows {
 			var operator Operator
 			if act.Operator.Code != "" {
@@ -316,8 +351,8 @@ func writeDay(c WriteContext, day GroupedRows, startCell Cell) (Cell, error) {
 			}
 
 			columnsForRoomStartAt := roomColumnNumbers[act.Room.Code]
-			cursor.C = columnsForRoomStartAt + uint(actIndex)
-			cursor.R = startCell.R + 2
+			cursor.MoveColumn(columnsForRoomStartAt + uint(actIndex))
+			cursor.MoveRow(startCell.Row() + 3)
 
 			inRange := false
 			exited := false
@@ -331,13 +366,13 @@ func writeDay(c WriteContext, day GroupedRows, startCell Cell) (Cell, error) {
 				if !inRange {
 					if !exited && !timeCursor.Before(act.StartAt) {
 						inRange = true
-						actStartCell.R = startCell.R + 2 + uint(i)
+						actStartCell.MoveRow(startCell.Row() + 3 + uint(i))
 					}
 				} else {
 					if !timeCursor.Before(act.EndAt) {
 						inRange = false
 						exited = true
-						actEndCell.R = startCell.R + 2 + uint(i-1)
+						actEndCell.MoveRow(startCell.Row() + 3 + uint(i-1))
 					}
 				}
 
@@ -349,31 +384,22 @@ func writeDay(c WriteContext, day GroupedRows, startCell Cell) (Cell, error) {
 				i++
 			}
 
-			/*
-				// if merging the cells is desired:
-
-				if actStartCell.R != actEndCell.R {
-					if err := f.MergeCell(actStartCell.SheetName, actStartCell.Code(), actEndCell.Code()); err != nil {
-						return cursor, err
-					}
-				}
-				if err := f.SetCellValue(actStartCell.SheetName, actStartCell.Code(), operator.Name); err != nil {
-					return cursor, err
-				}
-			*/
 			// if merging the cells is NOT desired:
-			for r := actStartCell.R; r <= actEndCell.R; r++ {
-				c := actStartCell.Copy()
-				c.R = r
-				if err := f.SetCellValue(c.SheetName, c.Code(), operator.Name); err != nil {
-					return cursor, err
+			for r := actStartCell.Row(); r <= actEndCell.Row(); r++ {
+				c := actStartCell.AtRow(r)
+				if err := f.SetCellValue(c.SheetName(), c.Code(), operator.Name); err != nil {
+					return zero, err
 				}
 			}
 
-			// apply style depending from operator
+			// apply style depending on the operator
 			operatorInfo := GetEntryForOperator(act.Operator.Code)
-			if err := f.SetCellStyle(actStartCell.SheetName, actStartCell.Code(), actEndCell.Code(), operatorInfo.Styles.Common.StyleID); err != nil {
-				return cursor, err
+			style := operatorInfo.Styles.Common
+			if len(getWarnings(act)) > 0 && operatorInfo.Styles.Warning.Style != nil {
+				style = operatorInfo.Styles.Warning
+			}
+			if err := f.SetCellStyle(actStartCell.SheetName(), actStartCell.Code(), actEndCell.Code(), style.StyleID); err != nil {
+				return zero, err
 			}
 
 			// write some comment with additional info
@@ -381,69 +407,110 @@ func writeDay(c WriteContext, day GroupedRows, startCell Cell) (Cell, error) {
 			if cellComment != "" {
 				comment(f, actStartCell, strings.TrimSpace(cellComment))
 			}
-
-			// write activity name under everything
-			if act.Raw.Attivita != "" {
-				actDescCell := actStartCell.Copy()
-				actDescCell.R = maxR + 1
-
-				actDescFinalCell := actDescCell.Copy()
-				actDescFinalCell.R += 10
-
-				if err := f.MergeCell(actDescCell.SheetName, actDescCell.Code(), actDescFinalCell.Code()); err != nil {
-					return cursor, err
-				}
-				if err := f.SetCellValue(actDescCell.SheetName, actDescCell.Code(), act.Raw.Attivita); err != nil {
-					return cursor, err
-				}
-				if err := f.SetCellStyle(actDescCell.SheetName, actDescCell.Code(), actDescCell.Code(), verticalTextStyle.StyleID); err != nil {
-					return cursor, err
-				}
-
-			}
 		}
 	}
 
 	// write the day name in the header
-	cursor = startCell.Copy()
-	cursor.C++
-	// check if we can merge some cells
-	if maxC-startCell.C >= 11 {
-		toCell := cursor.Copy()
-		toCell.C += 8
-
-		if err := f.MergeCell(cursor.SheetName, cursor.Code(), toCell.Code()); err != nil {
-			return cursor, err
-		}
+	cursor = startCell.AtRight(1).AtBottom(1)
+	toCell := cursor.AtRight(8)
+	if err := f.MergeCell(cursor.SheetName(), cursor.Code(), toCell.Code()); err != nil {
+		return zero, err
 	}
-
-	if err := f.SetCellValue(cursor.SheetName, cursor.Code(),
+	if err := f.SetCellValue(cursor.SheetName(), cursor.Code(),
 		day.Rows[0].StartAt.Format("Mon 2 January")); err != nil {
-		return cursor, err
+		return zero, err
 	}
-	if err := f.SetCellStyle(cursor.SheetName, cursor.Code(), cursor.Code(), dayHeaderStyle.StyleID); err != nil {
-		return cursor, err
+	if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(), dayHeaderStyle.StyleID); err != nil {
+		return zero, err
+	}
+
+	// write "MAT: ? POM: ?" placeholder
+	cursor = startCell.AtColumn(maxC - 8).AtRow(1)
+	if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
+		return zero, err
+	}
+	if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), "MAT:"); err != nil {
+		return zero, err
+	}
+	if err := f.MergeCell(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).AtRight(2).Code()); err != nil {
+		return zero, err
+	}
+	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), "?"); err != nil {
+		return zero, err
+	}
+	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(), toBeFilledStyle.StyleID); err != nil {
+		return zero, err
+	}
+
+	cursor = cursor.AtRight(4)
+	if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
+		return zero, err
+	}
+	if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), "POM:"); err != nil {
+		return zero, err
+	}
+	if err := f.MergeCell(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).AtRight(2).Code()); err != nil {
+		return zero, err
+	}
+	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), "?"); err != nil {
+		return zero, err
+	}
+	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(), toBeFilledStyle.StyleID); err != nil {
+		return zero, err
+	}
+
+	// write placeholder for info at the bottom
+	rowsToWrite := []string{
+		"Piano 0/ Accoglienza",
+		"Bookshop / Cassa",
+		"Cambio Stefano",
+		"On / off museo",
+		"Allest. / disallest.",
+		"Assenti",
+		"Appuntamenti / note",
+		"Responsabile emergenza",
+		"Addetto antincendio / impianti",
+		"Addetto antincendio /primo soccorso",
+	}
+	cursor = startCell.AtRow(maxR).AtBottom(1)
+	for _, rowToWrite := range rowsToWrite {
+		valueCursors := cursor.AtRight(7)
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), valueCursors.AtLeft(1).Code()); err != nil {
+			return zero, err
+		}
+		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), rowToWrite); err != nil {
+			return zero, err
+		}
+
+		if err := f.SetCellValue(cursor.SheetName(), valueCursors.Code(), "?"); err != nil {
+			return zero, err
+		}
+		if err := f.MergeCell(cursor.SheetName(), valueCursors.Code(), valueCursors.AtRight(7).Code()); err != nil {
+			return zero, err
+		}
+		if err := f.SetCellStyle(cursor.SheetName(), valueCursors.Code(), valueCursors.Code(),
+			toBeFilledStyle.StyleID); err != nil {
+			return zero, err
+		}
+
+		if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), 25); err != nil {
+			return zero, err
+		}
+
+		cursor.MoveBottom(1)
+		maxR = cursor.Row()
 	}
 
 	// compute the final cursor position
-	finalCursor := startCell.Copy()
-	finalCursor.C = maxC - 1
-	finalCursor.R = maxR - 1
-
-	return finalCursor, nil
+	finalCursor := startCell.AtColumn(maxC - 1).AtRow(maxR - 1)
+	return model.NewCellBox(startCell, finalCursor), nil
 }
 
 func buildComment(act ParsedRow) string {
 	cellComment := ``
-	if act.Room.Code == "" {
-		cellComment += "ATTENZIONE: NESSUNA AULA O RISORSA ASSEGNATA\n\n"
-	}
-	if act.Operator.Code == "" {
-		cellComment += "ATTENZIONE: NESSUN EDUCATORE ASSEGNATO\n\n"
-	}
 
-	if act.Raw.LinguaAttivita != "" && strings.ToLower(act.Raw.LinguaAttivita) != "it" {
-		cellComment += "ATTENZIONE: ATTIVITA PREVISTA IN LINGUA: " + act.Raw.LinguaAttivita + "\n\n"
+	for _, warning := range act.Warnings {
+		cellComment += "ATTENZIONE: " + warning + "\n\n"
 	}
 
 	if act.Raw.Attivita != "" {
@@ -541,18 +608,18 @@ func buildComment(act ParsedRow) string {
 	return strings.TrimSpace(cellComment)
 }
 
-func comment(f *excelize.File, cell Cell, content string) error {
+func comment(f *excelize.File, cell model.Cell, content string) error {
 	type serializable struct {
 		Author string `json:"author"`
 		Text   string `json:"text"`
 	}
 	v := serializable{
-		Author: "excel converter",
+		Author: "planner",
 		Text:   content,
 	}
 	serialized, err := json.Marshal(v)
 	if err != nil {
 		return err
 	}
-	return f.AddComment(cell.SheetName, cell.Code(), string(serialized))
+	return f.AddComment(cell.SheetName(), cell.Code(), string(serialized))
 }

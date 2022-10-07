@@ -50,6 +50,8 @@ type ParsedRow struct {
 	NumPaganti        int
 	NumGratuiti       int
 	NumAccompagnatori int
+
+	Warnings []string
 }
 
 type GroupedRows struct {

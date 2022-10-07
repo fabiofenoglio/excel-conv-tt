@@ -1,25 +1,42 @@
 package main
 
 import (
+	"fmt"
 	"os"
+	"time"
 
-	"github.com/fabiofenoglio/excelconv/cmd"
+	"github.com/jessevdk/go-flags"
+
+	"github.com/fabiofenoglio/excelconv/model"
 	"github.com/fabiofenoglio/excelconv/services"
 )
 
 func main() {
 	l := services.GetLogger()
-
-	if len(os.Args) == 2 {
-		err := services.Run(os.Args[1])
-		if err == nil {
-			os.Exit(0)
-		} else {
-			l.Error(err.Error())
-			os.Exit(1)
-		}
-	} else {
-
-		cmd.Execute()
+	err := run()
+	if err != nil {
+		l.Error(err.Error())
+		time.Sleep(time.Second * 10)
+		os.Exit(1)
 	}
+}
+
+func run() error {
+	var args model.Args
+	_, err := flags.Parse(&args)
+	if err != nil {
+		return err
+	}
+
+	err = func() (executionErr error) {
+		defer func() {
+			if recovered := recover(); recovered != nil {
+				executionErr = fmt.Errorf("[panic] %v", recovered)
+			}
+		}()
+		executionErr = services.Run(args)
+		return
+	}()
+
+	return err
 }
