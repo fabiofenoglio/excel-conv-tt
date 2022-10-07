@@ -5,6 +5,11 @@ import (
 )
 
 var availableColors = []string{
+	"#D9E9FA",
+	"#C8C7F9",
+	"#F1D3F5",
+	"#F6F7D4",
+	"#C7E8B5",
 	"#7fb574",
 	"#8c6a3e",
 	"#a16052",
@@ -31,6 +36,7 @@ var (
 			Border: []excelize.Border{},
 		},
 	}
+
 	dayRoomBoxStyle = StyleEntry{
 		Style: &excelize.Style{
 			Alignment: &excelize.Alignment{
@@ -46,6 +52,7 @@ var (
 			},
 		},
 	}
+
 	dayHeaderStyle = StyleEntry{
 		Style: &excelize.Style{
 			Font: &excelize.Font{
@@ -94,6 +101,26 @@ var (
 		},
 	}
 
+	unusedRoomStyle = StyleEntry{
+		Style: &excelize.Style{
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+			},
+			Fill: excelize.Fill{
+				Type:    "pattern",
+				Color:   []string{"#EEEEEE"},
+				Pattern: 1,
+			},
+			Border: []excelize.Border{
+				{Type: "left", Color: "333333", Style: 4},
+				{Type: "right", Color: "333333", Style: 4},
+				{Type: "top", Color: "333333", Style: 4},
+				{Type: "bottom", Color: "333333", Style: 4},
+			},
+		},
+	}
+
 	noOperatorStyle = Styles{
 		Common: StyleEntry{
 			Style: &excelize.Style{
@@ -108,6 +135,7 @@ var (
 				},
 				Font: &excelize.Font{
 					Color: "#FFFFFF",
+					Size:  9,
 				},
 				Border: []excelize.Border{
 					{Type: "left", Color: "FFFFFF", Style: 1},
@@ -171,6 +199,9 @@ func buildForOperator(color string) Styles {
 	return Styles{
 		Common: StyleEntry{
 			Style: &excelize.Style{
+				Font: &excelize.Font{
+					Size: 9,
+				},
 				Alignment: &excelize.Alignment{
 					Horizontal: "center",
 					Vertical:   "center",
@@ -190,6 +221,9 @@ func buildForOperator(color string) Styles {
 		},
 		Warning: StyleEntry{
 			Style: &excelize.Style{
+				Font: &excelize.Font{
+					Size: 9,
+				},
 				Alignment: &excelize.Alignment{
 					Horizontal: "center",
 					Vertical:   "center",

@@ -1,6 +1,8 @@
 package services
 
 import (
+	"crypto/sha1"
+	"encoding/base64"
 	"sort"
 	"strings"
 
@@ -120,6 +122,89 @@ func GroupByRoom(allData model.ParsedData, rows []model.ParsedRow) []model.Group
 	return out
 }
 
-func GetDifferentSchoolGroups(rows []model.ParsedRow) []model.GroupedRows {
-	panic("nope")
+func GetDifferentSchoolGroups(rows []model.ParsedRow) []model.SchoolGroup {
+	index := make(map[string]*model.SchoolGroup)
+	grouped := make([]*model.SchoolGroup, 0)
+
+	for _, row := range rows {
+		if row.Raw.NomeScuola == "" && row.Raw.Classe == "" {
+			continue
+		}
+		key := Base64Sha([]byte(
+			strings.ToLower(
+				row.Raw.Codice + "|" +
+					row.Raw.NomeScuola + "|" + row.Raw.Classe + "|" + row.Raw.Sezione)))
+
+		group, ok := index[key]
+		if !ok {
+			group = &model.SchoolGroup{
+				Code:              key,
+				Codice:            row.Raw.Codice,
+				TipologiaScuola:   row.Raw.TipologiaScuola,
+				NomeScuola:        row.Raw.NomeScuola,
+				Classe:            row.Raw.Classe,
+				Sezione:           row.Raw.Sezione,
+				NumPaganti:        row.NumPaganti,
+				NumGratuiti:       row.NumGratuiti,
+				NumAccompagnatori: row.NumAccompagnatori,
+			}
+			index[key] = group
+			grouped = append(grouped, group)
+		}
+
+		if row.Raw.TipologiaScuola != "" {
+			group.TipologiaScuola = row.Raw.TipologiaScuola
+		}
+		if row.Raw.NomeScuola != "" {
+			group.NomeScuola = row.Raw.NomeScuola
+		}
+		if row.Raw.Classe != "" {
+			group.Classe = row.Raw.Classe
+		}
+		if row.Raw.Sezione != "" {
+			group.Sezione = row.Raw.Sezione
+		}
+		if row.NumPaganti > 0 {
+			group.NumPaganti = row.NumPaganti
+		}
+		if row.NumGratuiti > 0 {
+			group.NumGratuiti = row.NumGratuiti
+		}
+		if row.NumAccompagnatori > 0 {
+			group.NumAccompagnatori = row.NumAccompagnatori
+		}
+	}
+
+	sort.Slice(grouped, func(i, j int) bool {
+		c := strings.Compare(strings.ToLower(grouped[i].Codice), strings.ToLower(grouped[j].Codice))
+		if c != 0 {
+			return c < 0
+		}
+		c = strings.Compare(strings.ToLower(grouped[i].NomeScuola), strings.ToLower(grouped[j].NomeScuola))
+		if c != 0 {
+			return c < 0
+		}
+		c = strings.Compare(strings.ToLower(grouped[i].Classe), strings.ToLower(grouped[j].Classe))
+		if c != 0 {
+			return c < 0
+		}
+		c = strings.Compare(strings.ToLower(grouped[i].Sezione), strings.ToLower(grouped[j].Sezione))
+		if c != 0 {
+			return c < 0
+		}
+		return false
+	})
+
+	out := make([]model.SchoolGroup, 0, len(grouped))
+	for _, e := range grouped {
+		out = append(out, *e)
+	}
+	return out
+}
+
+func Base64Sha(content []byte) string {
+	h := sha1.New()
+	h.Write(content)
+	sha := base64.URLEncoding.EncodeToString(h.Sum(nil))
+	return sha
 }

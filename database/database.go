@@ -48,20 +48,30 @@ func init() {
 		Styles: noRoomStyle,
 	}
 
-	knownRoomMap["planetario"] = &KnownRoom{
-		Name:   "Planetario",
-		Styles: buildForRoom("#E0EBF5"),
+	knownRoomMap["navetta"] = &KnownRoom{
+		Name:   "Navetta",
+		Styles: buildForRoom("#D9E9FA"),
+		Slots:  5,
+	}
+	knownRoomMap["museo"] = &KnownRoom{
+		Name:   "Museo",
+		Styles: buildForRoom("#C8C7F9"),
+		Slots:  6,
+	}
+	knownRoomMap["pranzo"] = &KnownRoom{
+		Name:   "Pranzo",
+		Styles: buildForRoom("#F1D3F5"),
 		Slots:  4,
 	}
-	knownRoomMap["aula 2"] = &KnownRoom{
-		Name:   "Aula 2",
-		Styles: buildForRoom("#33CC33"),
-		Slots:  2,
+	knownRoomMap["planetario"] = &KnownRoom{
+		Name:   "Planetario",
+		Styles: buildForRoom("#F6F7D4"),
+		Slots:  5,
 	}
-	knownRoomMap["aula inutile"] = &KnownRoom{
-		Name:   "Aula inutile",
-		Styles: buildForRoom("#222222"),
-		Slots:  3,
+	knownRoomMap["lab"] = &KnownRoom{
+		Name:   "Lab",
+		Styles: buildForRoom("#C7E8B5"),
+		Slots:  2,
 	}
 
 	knownOperatorMap = make(map[string]*KnownOperator)
@@ -101,6 +111,13 @@ func ToBeFilledStyleID() int {
 		registerStyleEntry(&toBeFilledStyle, registerTarget)
 	}
 	return toBeFilledStyle.StyleID
+}
+
+func UnusedRoomStyleID() int {
+	if unusedRoomStyle.StyleID == 0 {
+		registerStyleEntry(&unusedRoomStyle, registerTarget)
+	}
+	return unusedRoomStyle.StyleID
 }
 
 func RegisterStyles(f *excelize.File) {
