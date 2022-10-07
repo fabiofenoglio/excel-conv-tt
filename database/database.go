@@ -1,6 +1,8 @@
-package services
+package database
 
-import "github.com/xuri/excelize/v2"
+import (
+	"github.com/xuri/excelize/v2"
+)
 
 type StyleEntry struct {
 	Style   *excelize.Style
@@ -29,6 +31,14 @@ var (
 	knownRoomMap     map[string]*KnownRoom
 	knownOperatorMap map[string]*KnownOperator
 )
+
+func KnownRoomMap() map[string]*KnownRoom {
+	return knownRoomMap
+}
+
+func KnownOperatorMap() map[string]*KnownOperator {
+	return knownOperatorMap
+}
 
 func init() {
 	// https://xuri.me/excelize/en/style.html#border
@@ -65,41 +75,44 @@ func init() {
 
 }
 
-func registerStyleEntry(e *StyleEntry, f *excelize.File) {
-	if e == nil || e.Style == nil {
-		return
+func DayBoxStyleID() int {
+	if dayBoxStyle.StyleID == 0 {
+		registerStyleEntry(&dayBoxStyle, registerTarget)
 	}
-	if e.StyleID > 0 {
-		return
+	return dayBoxStyle.StyleID
+}
+
+func DayRoomBoxStyleID() int {
+	if dayRoomBoxStyle.StyleID == 0 {
+		registerStyleEntry(&dayRoomBoxStyle, registerTarget)
 	}
-	styleID, err := f.NewStyle(e.Style)
-	if err != nil {
-		panic(err)
+	return dayRoomBoxStyle.StyleID
+}
+
+func DayHeaderStyleID() int {
+	if dayHeaderStyle.StyleID == 0 {
+		registerStyleEntry(&dayHeaderStyle, registerTarget)
 	}
-	e.StyleID = styleID
+	return dayHeaderStyle.StyleID
+}
+
+func ToBeFilledStyleID() int {
+	if toBeFilledStyle.StyleID == 0 {
+		registerStyleEntry(&toBeFilledStyle, registerTarget)
+	}
+	return toBeFilledStyle.StyleID
 }
 
 func RegisterStyles(f *excelize.File) {
 	registerTarget = f
-
-	for _, entry := range knownRoomMap {
-		registerStyleEntry(&entry.Common, f)
-		registerStyleEntry(&entry.Warning, f)
-	}
-
-	for _, entry := range knownOperatorMap {
-		registerStyleEntry(&entry.Common, f)
-		registerStyleEntry(&entry.Warning, f)
-	}
-
-	registerStyleEntry(&dayBoxStyle, f)
-	registerStyleEntry(&dayRoomBoxStyle, f)
-	registerStyleEntry(&dayHeaderStyle, f)
-	registerStyleEntry(&toBeFilledStyle, f)
 }
 
 func GetEntryForOperator(code string) KnownOperator {
 	if entry, ok := knownOperatorMap[code]; ok {
+		if entry.Common.StyleID == 0 {
+			registerStyleEntry(&entry.Common, registerTarget)
+			registerStyleEntry(&entry.Warning, registerTarget)
+		}
 		return *entry
 	}
 
@@ -116,6 +129,10 @@ func GetEntryForOperator(code string) KnownOperator {
 
 func GetEntryForRoom(code string) KnownRoom {
 	if entry, ok := knownRoomMap[code]; ok {
+		if entry.Common.StyleID == 0 {
+			registerStyleEntry(&entry.Common, registerTarget)
+			registerStyleEntry(&entry.Warning, registerTarget)
+		}
 		return *entry
 	}
 
@@ -136,4 +153,18 @@ func pickColor() string {
 		registerColorRange = 0
 	}
 	return v
+}
+
+func registerStyleEntry(e *StyleEntry, f *excelize.File) {
+	if e == nil || e.Style == nil {
+		return
+	}
+	if e.StyleID > 0 {
+		return
+	}
+	styleID, err := f.NewStyle(e.Style)
+	if err != nil {
+		panic(err)
+	}
+	e.StyleID = styleID
 }

@@ -10,27 +10,30 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/xuri/excelize/v2"
 
+	"github.com/fabiofenoglio/excelconv/database"
+	"github.com/fabiofenoglio/excelconv/logger"
 	"github.com/fabiofenoglio/excelconv/model"
+	"github.com/fabiofenoglio/excelconv/parser"
 )
 
 type WriteContext struct {
 	minHour     int
 	maxHour     int
 	minutesStep int
-	allData     Parsed
+	allData     model.ParsedData
 	outputFile  *excelize.File
 }
 
 func Run(args model.Args) error {
 	input := args.PositionalArgs.InputFile
-	log := GetLogger()
+	log := logger.GetLogger()
 	if args.Verbose {
 		log.SetLevel(logrus.DebugLevel)
 	}
 
 	// parse the specified input file
 
-	parsed, err := Parse(input)
+	parsed, err := parser.Parse(input)
 	if err != nil {
 		return fmt.Errorf("error reading from input file: %w", err)
 	}
@@ -49,7 +52,7 @@ func Run(args model.Args) error {
 	log.Infof("found activities spanning %d different days", len(groupedByStartDate))
 
 	f := excelize.NewFile()
-	RegisterStyles(f)
+	database.RegisterStyles(f)
 
 	wc := WriteContext{
 		minHour:     minHourToShow,
@@ -112,7 +115,7 @@ func Run(args model.Args) error {
 	return nil
 }
 
-func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus.Logger) (model.CellBox, error) {
+func writeDay(c WriteContext, day model.GroupedRows, startCell model.Cell, log *logrus.Logger) (model.CellBox, error) {
 	zero := model.CellBox{}
 
 	minGroupWidth := uint(12)
@@ -153,7 +156,7 @@ func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus
 			continue
 		}
 
-		roomInfo := GetEntryForRoom(room.Code)
+		roomInfo := database.GetEntryForRoom(room.Code)
 		if numActs == 0 && roomInfo.Slots == 0 {
 			continue
 		}
@@ -303,7 +306,7 @@ func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus
 	boxEnd.MoveColumn(maxC - 1)
 	boxEnd.MoveRow(maxR - 1)
 
-	if err := f.SetCellStyle(startCell.SheetName(), boxStart.Code(), boxEnd.Code(), dayBoxStyle.StyleID); err != nil {
+	if err := f.SetCellStyle(startCell.SheetName(), boxStart.Code(), boxEnd.Code(), database.DayBoxStyleID()); err != nil {
 		return zero, err
 	}
 
@@ -321,14 +324,14 @@ func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus
 		boxStart := startCell.AtColumn(columnsForRoomStartAt).AtBottom(3)
 		boxEnd := boxStart.AtRight(roomWidths[group.Key] - 1).AtRow(maxR - 1)
 
-		if err := f.SetCellStyle(startCell.SheetName(), boxStart.Code(), boxEnd.Code(), dayRoomBoxStyle.StyleID); err != nil {
+		if err := f.SetCellStyle(startCell.SheetName(), boxStart.Code(), boxEnd.Code(), database.DayRoomBoxStyleID()); err != nil {
 			return zero, err
 		}
 
 		boxHeaderStart := boxStart.AtTop(1)
 		boxHeaderEnd := boxHeaderStart.AtColumn(boxEnd.Column())
 
-		roomInfo := GetEntryForRoom(group.Key)
+		roomInfo := database.GetEntryForRoom(group.Key)
 		if err := f.SetCellStyle(cursor.SheetName(), boxHeaderStart.Code(), boxHeaderEnd.Code(), roomInfo.Styles.Common.StyleID); err != nil {
 			return zero, err
 		}
@@ -342,7 +345,7 @@ func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus
 		log.Infof("placing activities for room %s", group.Key)
 
 		for actIndex, act := range group.Rows {
-			var operator Operator
+			var operator model.Operator
 			if act.Operator.Code != "" {
 				operator, _ = c.allData.OperatorsMap[act.Operator.Code]
 			}
@@ -393,9 +396,9 @@ func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus
 			}
 
 			// apply style depending on the operator
-			operatorInfo := GetEntryForOperator(act.Operator.Code)
+			operatorInfo := database.GetEntryForOperator(act.Operator.Code)
 			style := operatorInfo.Styles.Common
-			if len(getWarnings(act)) > 0 && operatorInfo.Styles.Warning.Style != nil {
+			if len(act.Warnings) > 0 && operatorInfo.Styles.Warning.Style != nil {
 				style = operatorInfo.Styles.Warning
 			}
 			if err := f.SetCellStyle(actStartCell.SheetName(), actStartCell.Code(), actEndCell.Code(), style.StyleID); err != nil {
@@ -420,7 +423,7 @@ func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus
 		day.Rows[0].StartAt.Format("Mon 2 January")); err != nil {
 		return zero, err
 	}
-	if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(), dayHeaderStyle.StyleID); err != nil {
+	if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(), database.DayHeaderStyleID()); err != nil {
 		return zero, err
 	}
 
@@ -438,7 +441,7 @@ func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus
 	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), "?"); err != nil {
 		return zero, err
 	}
-	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(), toBeFilledStyle.StyleID); err != nil {
+	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(), database.ToBeFilledStyleID()); err != nil {
 		return zero, err
 	}
 
@@ -455,7 +458,7 @@ func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus
 	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), "?"); err != nil {
 		return zero, err
 	}
-	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(), toBeFilledStyle.StyleID); err != nil {
+	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(), database.ToBeFilledStyleID()); err != nil {
 		return zero, err
 	}
 
@@ -489,7 +492,7 @@ func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus
 			return zero, err
 		}
 		if err := f.SetCellStyle(cursor.SheetName(), valueCursors.Code(), valueCursors.Code(),
-			toBeFilledStyle.StyleID); err != nil {
+			database.ToBeFilledStyleID()); err != nil {
 			return zero, err
 		}
 
@@ -506,7 +509,7 @@ func writeDay(c WriteContext, day GroupedRows, startCell model.Cell, log *logrus
 	return model.NewCellBox(startCell, finalCursor), nil
 }
 
-func buildComment(act ParsedRow) string {
+func buildComment(act model.ParsedRow) string {
 	cellComment := ``
 
 	for _, warning := range act.Warnings {

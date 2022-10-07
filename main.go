@@ -5,6 +5,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/fabiofenoglio/excelconv/logger"
 	"github.com/jessevdk/go-flags"
 
 	"github.com/fabiofenoglio/excelconv/model"
@@ -12,7 +13,7 @@ import (
 )
 
 func main() {
-	l := services.GetLogger()
+	l := logger.GetLogger()
 	err := run()
 	if err != nil {
 		l.Error(err.Error())

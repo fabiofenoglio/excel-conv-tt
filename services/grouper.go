@@ -3,14 +3,21 @@ package services
 import (
 	"sort"
 	"strings"
+
+	"github.com/fabiofenoglio/excelconv/model"
 )
 
-func GroupByStartDay(rows []ParsedRow) []GroupedRows {
+const (
+	layoutDateOrderable            = "2006-01-02"
+	layoutTimeOnlyInReadableFormat = "15:04"
+)
+
+func GroupByStartDay(rows []model.ParsedRow) []model.GroupedRows {
 
 	// group by start date, ordering each group by start time ASC, end time ASC
 
-	grouped := make([]*GroupedRows, 0)
-	index := make(map[string]*GroupedRows)
+	grouped := make([]*model.GroupedRows, 0)
+	index := make(map[string]*model.GroupedRows)
 	for _, activity := range rows {
 		if activity.StartAt.IsZero() {
 			continue
@@ -19,7 +26,7 @@ func GroupByStartDay(rows []ParsedRow) []GroupedRows {
 
 		group, ok := index[key]
 		if !ok {
-			group = &GroupedRows{
+			group = &model.GroupedRows{
 				Key: key,
 			}
 			index[key] = group
@@ -44,25 +51,25 @@ func GroupByStartDay(rows []ParsedRow) []GroupedRows {
 		})
 	}
 
-	out := make([]GroupedRows, 0, len(grouped))
+	out := make([]model.GroupedRows, 0, len(grouped))
 	for _, e := range grouped {
 		out = append(out, *e)
 	}
 	return out
 }
 
-func GroupByRoom(allData Parsed, rows []ParsedRow) []GroupedRows {
+func GroupByRoom(allData model.ParsedData, rows []model.ParsedRow) []model.GroupedRows {
 
 	// group by room, ordering each group by start time ASC, end time ASC
 
-	grouped := make([]*GroupedRows, 0)
-	index := make(map[string]*GroupedRows)
+	grouped := make([]*model.GroupedRows, 0)
+	index := make(map[string]*model.GroupedRows)
 	for _, activity := range rows {
 		key := activity.Room.Code
 
 		group, ok := index[key]
 		if !ok {
-			group = &GroupedRows{
+			group = &model.GroupedRows{
 				Key: key,
 			}
 			index[key] = group
@@ -73,7 +80,7 @@ func GroupByRoom(allData Parsed, rows []ParsedRow) []GroupedRows {
 
 	for _, knownRoom := range allData.Rooms {
 		if _, ok := index[knownRoom.Code]; !ok {
-			group := &GroupedRows{
+			group := &model.GroupedRows{
 				Key: knownRoom.Code,
 			}
 			index[knownRoom.Code] = group
@@ -106,9 +113,13 @@ func GroupByRoom(allData Parsed, rows []ParsedRow) []GroupedRows {
 		})
 	}
 
-	out := make([]GroupedRows, 0, len(grouped))
+	out := make([]model.GroupedRows, 0, len(grouped))
 	for _, e := range grouped {
 		out = append(out, *e)
 	}
 	return out
+}
+
+func GetDifferentSchoolGroups(rows []model.ParsedRow) []model.GroupedRows {
+	panic("nope")
 }

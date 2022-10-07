@@ -1,4 +1,4 @@
-package services
+package parser
 
 import (
 	"errors"
@@ -13,16 +13,16 @@ import (
 
 	"github.com/xuri/excelize/v2"
 
+	"github.com/fabiofenoglio/excelconv/database"
+	"github.com/fabiofenoglio/excelconv/logger"
 	"github.com/fabiofenoglio/excelconv/model"
 )
 
 const (
-	layoutTimeOnlyWithSeconds      = "15:04:05"
-	layoutTimeOnlyWithMinutes      = "15:04"
-	layoutTimeOnlyWithHours        = "15"
-	layoutDateOnlyInITFormat       = "02/01/2006"
-	layoutDateOrderable            = "2006-01-02"
-	layoutTimeOnlyInReadableFormat = "15:04"
+	layoutTimeOnlyWithSeconds = "15:04:05"
+	layoutTimeOnlyWithMinutes = "15:04"
+	layoutTimeOnlyWithHours   = "15"
+	layoutDateOnlyInITFormat  = "02/01/2006"
 )
 
 var (
@@ -37,9 +37,9 @@ func init() {
 	}
 }
 
-func Parse(input string) (Parsed, error) {
-	zero := Parsed{}
-	log := GetLogger()
+func Parse(input string) (model.ParsedData, error) {
+	zero := model.ParsedData{}
+	log := logger.GetLogger()
 
 	var err error
 
@@ -58,7 +58,7 @@ func Parse(input string) (Parsed, error) {
 	startingHeaderCell := model.NewCell("Organizzazione", 1, 4)
 
 	columnNameToFieldNameMap := make(map[string]string)
-	sampleRow := &Row{}
+	sampleRow := &model.ExcelRow{}
 	val := reflect.ValueOf(sampleRow).Elem()
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Type().Field(i)
@@ -129,12 +129,12 @@ func Parse(input string) (Parsed, error) {
 	log.Info("mapping build completed")
 	log.Info("all required fields have a valid mapping column")
 
-	results := make([]ParsedRow, 0, 20)
+	results := make([]model.ParsedRow, 0, 20)
 
 	currentCell := startingHeaderCell.AtBottom(1)
 
 	for {
-		row := Row{}
+		row := model.ExcelRow{}
 		anyNonNil := false
 
 		for fieldName, columnNumber := range fieldNameToColumnNumberMap {
@@ -183,8 +183,8 @@ func Parse(input string) (Parsed, error) {
 		currentCell.MoveBottom(1)
 	}
 
-	roomsMap := make(map[string]Room)
-	operatorsMap := make(map[string]Operator)
+	roomsMap := make(map[string]model.Room)
+	operatorsMap := make(map[string]model.Operator)
 
 	for _, a := range results {
 		if a.Room.Code != "" {
@@ -196,16 +196,16 @@ func Parse(input string) (Parsed, error) {
 	}
 
 	// import room definitions from database if not yet found
-	for k, def := range knownRoomMap {
+	for k, def := range database.KnownRoomMap() {
 		if _, ok := roomsMap[k]; !ok {
-			roomsMap[k] = Room{
+			roomsMap[k] = model.Room{
 				Name: def.Name,
 				Code: k,
 			}
 		}
 	}
 
-	rooms := make([]Room, 0, 5)
+	rooms := make([]model.Room, 0, 5)
 	for _, r := range roomsMap {
 		rooms = append(rooms, r)
 	}
@@ -213,7 +213,7 @@ func Parse(input string) (Parsed, error) {
 		return rooms[i].Name < rooms[j].Name
 	})
 
-	operators := make([]Operator, 0, 5)
+	operators := make([]model.Operator, 0, 5)
 	for _, o := range operatorsMap {
 		operators = append(operators, o)
 	}
@@ -221,7 +221,7 @@ func Parse(input string) (Parsed, error) {
 		return operators[i].Name < operators[j].Name
 	})
 
-	return Parsed{
+	return model.ParsedData{
 		Rows:         results,
 		Rooms:        rooms,
 		RoomsMap:     roomsMap,
@@ -230,7 +230,7 @@ func Parse(input string) (Parsed, error) {
 	}, nil
 }
 
-func validate(r Row) error {
+func validate(r model.ExcelRow) error {
 	if r.Codice == "" {
 		return errors.New("codice is required")
 	}
@@ -248,11 +248,11 @@ func validate(r Row) error {
 	return nil
 }
 
-func parseRow(r Row) (ParsedRow, error) {
+func parseRow(r model.ExcelRow) (model.ParsedRow, error) {
 
 	data, err := time.Parse(layoutDateOnlyInITFormat, r.Data)
 	if err != nil {
-		return ParsedRow{}, fmt.Errorf("il valore '%s' non e' una data valida nel formato 'GG/MM/YYYY'", r.Data)
+		return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' una data valida nel formato 'GG/MM/YYYY'", r.Data)
 	}
 
 	orari := strings.Split(r.Orario, "-")
@@ -266,7 +266,7 @@ func parseRow(r Row) (ParsedRow, error) {
 		start, err = time.Parse(layoutTimeOnlyWithHours, v)
 	}
 	if err != nil {
-		return ParsedRow{}, fmt.Errorf("il valore '%s' non e' un orario di inizio valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
+		return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' un orario di inizio valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
 	}
 
 	v = strings.TrimSpace(orari[1])
@@ -278,7 +278,7 @@ func parseRow(r Row) (ParsedRow, error) {
 		start, err = time.Parse(layoutTimeOnlyWithHours, v)
 	}
 	if err != nil {
-		return ParsedRow{}, fmt.Errorf("il valore '%s' non e' un orario di fine valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
+		return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' un orario di fine valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
 	}
 
 	start = time.Date(data.Year(), data.Month(), data.Day(), start.Hour(), start.Minute(), start.Second(), 0, localTimeZone)
@@ -288,7 +288,7 @@ func parseRow(r Row) (ParsedRow, error) {
 		end = time.Date(data.Year(), data.Month(), data.Day()+1, end.Hour(), end.Minute(), end.Second(), 0, localTimeZone)
 	}
 
-	room := Room{}
+	room := model.Room{}
 	if r.Aula != "" {
 		room.Code = strings.ToLower(r.Aula)
 		room.Name = r.Aula
@@ -297,7 +297,7 @@ func parseRow(r Row) (ParsedRow, error) {
 		room.Name = "???"
 	}
 
-	operator := Operator{}
+	operator := model.Operator{}
 	if r.Educatore != "" {
 		operator.Code = strings.ToLower(r.Educatore)
 		operator.Name = r.Educatore
@@ -313,23 +313,23 @@ func parseRow(r Row) (ParsedRow, error) {
 	if r.Paganti != "" {
 		numPaganti, err = strconv.Atoi(r.Paganti)
 		if err != nil {
-			return ParsedRow{}, fmt.Errorf("il valore '%s' non e' un numero valido", r.Paganti)
+			return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' un numero valido", r.Paganti)
 		}
 	}
 	if r.Gratuiti != "" {
 		numGratuiti, err = strconv.Atoi(r.Gratuiti)
 		if err != nil {
-			return ParsedRow{}, fmt.Errorf("il valore '%s' non e' un numero valido", r.Gratuiti)
+			return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' un numero valido", r.Gratuiti)
 		}
 	}
 	if r.Accompagnatori != "" {
 		numAccompagnatori, err = strconv.Atoi(r.Accompagnatori)
 		if err != nil {
-			return ParsedRow{}, fmt.Errorf("il valore '%s' non e' un numero valido", r.Accompagnatori)
+			return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' un numero valido", r.Accompagnatori)
 		}
 	}
 
-	r2 := ParsedRow{
+	r2 := model.ParsedRow{
 		Raw:               r,
 		StartAt:           start,
 		EndAt:             end,
@@ -346,7 +346,7 @@ func parseRow(r Row) (ParsedRow, error) {
 	return r2, nil
 }
 
-func getWarnings(act ParsedRow) []string {
+func getWarnings(act model.ParsedRow) []string {
 	out := make([]string, 0)
 	if act.Room.Code == "" {
 		out = append(out, "NESSUNA AULA O RISORSA ASSEGNATA")

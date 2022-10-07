@@ -1,6 +1,8 @@
-package services
+package database
 
-import "github.com/xuri/excelize/v2"
+import (
+	"github.com/xuri/excelize/v2"
+)
 
 var availableColors = []string{
 	"#7fb574",

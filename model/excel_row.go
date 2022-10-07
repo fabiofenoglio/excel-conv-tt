@@ -1,10 +1,6 @@
-package services
+package model
 
-import (
-	"time"
-)
-
-type Row struct {
+type ExcelRow struct {
 	Codice           string `column:"Codice" required:"true"`
 	Data             string `column:"Data" required:"true"`
 	Orario           string `column:"Orario" required:"true"`
@@ -27,43 +23,4 @@ type Row struct {
 	StatoAcconti     string `column:"Stato acconti"`
 
 	Other map[string]interface{}
-}
-
-type Room struct {
-	Name string
-	Code string
-}
-
-type Operator struct {
-	Name string
-	Code string
-}
-
-type ParsedRow struct {
-	Raw Row
-
-	StartAt           time.Time
-	EndAt             time.Time
-	Duration          time.Duration
-	Room              Room
-	Operator          Operator
-	NumPaganti        int
-	NumGratuiti       int
-	NumAccompagnatori int
-
-	Warnings []string
-}
-
-type GroupedRows struct {
-	Key  string
-	Rows []ParsedRow
-}
-
-type Parsed struct {
-	Rows []ParsedRow
-
-	Rooms        []Room
-	RoomsMap     map[string]Room
-	Operators    []Operator
-	OperatorsMap map[string]Operator
 }
