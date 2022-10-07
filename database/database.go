@@ -16,8 +16,9 @@ type Styles struct {
 
 type KnownRoom struct {
 	Styles
-	Name  string
-	Slots uint
+	Name                 string
+	Slots                uint
+	AllowMissingOperator bool
 }
 
 type KnownOperator struct {
@@ -59,9 +60,10 @@ func init() {
 		Slots:  6,
 	}
 	knownRoomMap["pranzo"] = &KnownRoom{
-		Name:   "Pranzo",
-		Styles: buildForRoom("#F1D3F5"),
-		Slots:  4,
+		Name:                 "Pranzo",
+		Styles:               buildForRoom("#F1D3F5"),
+		Slots:                4,
+		AllowMissingOperator: true,
 	}
 	knownRoomMap["planetario"] = &KnownRoom{
 		Name:   "Planetario",
@@ -83,6 +85,13 @@ func init() {
 		Styles: buildForOperator("#E0EBF5"),
 	}
 
+}
+
+func NoOperatorNeededStyleID() int {
+	if noOperatorNeededStyle.StyleID == 0 {
+		registerStyleEntry(&noOperatorNeededStyle, registerTarget)
+	}
+	return noOperatorNeededStyle.StyleID
 }
 
 func DayBoxStyleID() int {
@@ -126,7 +135,7 @@ func RegisterStyles(f *excelize.File) {
 
 func GetEntryForOperator(code string) KnownOperator {
 	if entry, ok := knownOperatorMap[code]; ok {
-		if entry.Common.StyleID == 0 {
+		if entry.Common.StyleID == 0 && registerTarget != nil {
 			registerStyleEntry(&entry.Common, registerTarget)
 			registerStyleEntry(&entry.Warning, registerTarget)
 		}
@@ -134,9 +143,10 @@ func GetEntryForOperator(code string) KnownOperator {
 	}
 
 	style := buildForOperator(pickColor())
-	registerStyleEntry(&style.Common, registerTarget)
-	registerStyleEntry(&style.Warning, registerTarget)
-
+	if registerTarget != nil {
+		registerStyleEntry(&style.Common, registerTarget)
+		registerStyleEntry(&style.Warning, registerTarget)
+	}
 	knownOperatorMap[code] = &KnownOperator{
 		Styles: style,
 	}
@@ -146,7 +156,7 @@ func GetEntryForOperator(code string) KnownOperator {
 
 func GetEntryForRoom(code string) KnownRoom {
 	if entry, ok := knownRoomMap[code]; ok {
-		if entry.Common.StyleID == 0 {
+		if entry.Common.StyleID == 0 && registerTarget != nil {
 			registerStyleEntry(&entry.Common, registerTarget)
 			registerStyleEntry(&entry.Warning, registerTarget)
 		}
@@ -154,7 +164,9 @@ func GetEntryForRoom(code string) KnownRoom {
 	}
 
 	style := buildForRoom(pickColor())
-	registerStyleEntry(&style.Common, registerTarget)
+	if registerTarget != nil {
+		registerStyleEntry(&style.Common, registerTarget)
+	}
 
 	knownRoomMap[code] = &KnownRoom{
 		Styles: style,

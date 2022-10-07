@@ -135,7 +135,7 @@ var (
 				},
 				Font: &excelize.Font{
 					Color: "#FFFFFF",
-					Size:  11,
+					Size:  10,
 				},
 				Border: []excelize.Border{
 					{Type: "left", Color: "FFFFFF", Style: 1},
@@ -143,6 +143,29 @@ var (
 					{Type: "top", Color: "FFFFFF", Style: 4},
 					{Type: "bottom", Color: "FFFFFF", Style: 4},
 				},
+			},
+		},
+	}
+
+	noOperatorNeededStyle = StyleEntry{
+		Style: &excelize.Style{
+			Alignment: &excelize.Alignment{
+				Horizontal: "center",
+				Vertical:   "center",
+			},
+			Fill: excelize.Fill{
+				Type:    "pattern",
+				Color:   []string{"#EEEEEE"},
+				Pattern: 1,
+			},
+			Font: &excelize.Font{
+				Size: 10,
+			},
+			Border: []excelize.Border{
+				{Type: "left", Color: "EEEEEE", Style: 1},
+				{Type: "right", Color: "EEEEEE", Style: 1},
+				{Type: "top", Color: "EEEEEE", Style: 4},
+				{Type: "bottom", Color: "EEEEEE", Style: 4},
 			},
 		},
 	}
@@ -200,7 +223,7 @@ func buildForOperator(color string) Styles {
 		Common: StyleEntry{
 			Style: &excelize.Style{
 				Font: &excelize.Font{
-					Size: 11,
+					Size: 10,
 				},
 				Alignment: &excelize.Alignment{
 					Horizontal: "center",
@@ -222,7 +245,7 @@ func buildForOperator(color string) Styles {
 		Warning: StyleEntry{
 			Style: &excelize.Style{
 				Font: &excelize.Font{
-					Size: 11,
+					Size: 10,
 				},
 				Alignment: &excelize.Alignment{
 					Horizontal: "center",

@@ -147,7 +147,7 @@ func writeDay(c WriteContext, day model.GroupedRows, startCell model.Cell, log *
 	zero := model.CellBox{}
 
 	minGroupWidth := uint(12)
-	minGroupWidthPerSlot := uint(4)
+	minGroupWidthPerSlot := uint(5)
 	minDayWidthInCells := uint(20)
 	boxCellHeight := float64(20)
 	moreSlotsAtBottom := 0 // add if you want to show some empty time rows after the last one
@@ -384,6 +384,7 @@ func writeDay(c WriteContext, day model.GroupedRows, startCell model.Cell, log *
 
 	for _, group := range groupedByRoom {
 		log.Infof("placing activities for room %s", group.Key)
+		roomInfo := database.GetEntryForRoom(group.Key)
 
 		for actIndex, act := range group.Rows {
 			var operator model.Operator
@@ -432,12 +433,15 @@ func writeDay(c WriteContext, day model.GroupedRows, startCell model.Cell, log *
 			for r := actStartCell.Row(); r <= actEndCell.Row(); r++ {
 				c := actStartCell.AtRow(r)
 
-				// writeInCell := operator.Name
-				writeInCell := act.Raw.Codice
-				if decoded, ok := schoolGroupsIndex[act.Raw.Codice]; ok && decoded.NumeroSeq > 0 {
-					writeInCell = fmt.Sprintf("%d", decoded.NumeroSeq)
-				}
-				if writeInCell == "" {
+				/*
+					// writeInCell := operator.Name
+					writeInCell := act.Raw.Codice
+					if decoded, ok := schoolGroupsIndex[act.Raw.Codice]; ok && decoded.NumeroSeq > 0 {
+						writeInCell = fmt.Sprintf("%d", decoded.NumeroSeq)
+					}
+				*/
+				writeInCell := shortenGroupCode(act.Raw.Codice)
+				if writeInCell == "" && operator.Code != "" {
 					writeInCell = operator.Name
 				}
 
@@ -447,12 +451,18 @@ func writeDay(c WriteContext, day model.GroupedRows, startCell model.Cell, log *
 			}
 
 			// apply style depending on the operator
-			operatorInfo := database.GetEntryForOperator(act.Operator.Code)
-			style := operatorInfo.Styles.Common
-			if len(act.Warnings) > 0 && operatorInfo.Styles.Warning.Style != nil {
-				style = operatorInfo.Styles.Warning
+			var style int
+			if act.Operator.Code == "" && roomInfo.AllowMissingOperator {
+				style = database.NoOperatorNeededStyleID()
+			} else {
+				operatorInfo := database.GetEntryForOperator(act.Operator.Code)
+				style = operatorInfo.Styles.Common.StyleID
+				if len(act.Warnings) > 0 && operatorInfo.Styles.Warning.Style != nil {
+					style = operatorInfo.Styles.Warning.StyleID
+				}
 			}
-			if err := f.SetCellStyle(actStartCell.SheetName(), actStartCell.Code(), actEndCell.Code(), style.StyleID); err != nil {
+
+			if err := f.SetCellStyle(actStartCell.SheetName(), actStartCell.Code(), actEndCell.Code(), style); err != nil {
 				return zero, err
 			}
 
@@ -529,7 +539,7 @@ func writeSchoolsForDay(c WriteContext, groups []model.SchoolGroup, startCell mo
 	for _, schoolGroup := range groups {
 		cursor.MoveColumn(startCell.Column())
 
-		toWrite := fmt.Sprintf("%d", schoolGroup.NumeroSeq)
+		toWrite := fmt.Sprintf("%s", schoolGroup.Codice)
 		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
 			return zero, err
 		}
@@ -610,7 +620,7 @@ func writePlaceholdersForDay(c WriteContext, startCell model.Cell, log *logrus.L
 
 	// write placeholder for info at the bottom
 	rowsToWrite := []string{
-		"Piano 0/ Accoglienza",
+		"Piano 0 / Accoglienza",
 		"Bookshop / Cassa",
 		"Cambio Stefano",
 		"On / off museo",
@@ -619,7 +629,7 @@ func writePlaceholdersForDay(c WriteContext, startCell model.Cell, log *logrus.L
 		"Appuntamenti / note",
 		"Responsabile emergenza",
 		"Addetto antincendio / impianti",
-		"Addetto antincendio /primo soccorso",
+		"Addetto antincendio / primo soccorso",
 	}
 	cursor = startCell.AtRow(maxR).AtBottom(1)
 	for _, rowToWrite := range rowsToWrite {
@@ -816,4 +826,11 @@ func comment(f *excelize.File, cell model.Cell, content string) error {
 		return err
 	}
 	return f.AddComment(cell.SheetName(), cell.Code(), string(serialized))
+}
+
+func shortenGroupCode(code string) string {
+	if len(code) >= 4 && strings.Contains(code, "-") && strings.HasPrefix(code, "P") {
+		return strings.TrimPrefix(code, "P")
+	}
+	return code
 }

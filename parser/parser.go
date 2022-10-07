@@ -351,9 +351,19 @@ func getWarnings(act model.ParsedRow) []string {
 	if act.Room.Code == "" {
 		out = append(out, "NESSUNA AULA O RISORSA ASSEGNATA")
 	}
-	if act.Operator.Code == "" {
+
+	allowNoOperator := false
+	if act.Room.Code != "" {
+		roomInfo := database.GetEntryForRoom(act.Room.Code)
+		if roomInfo.AllowMissingOperator {
+			allowNoOperator = true
+		}
+	}
+
+	if act.Operator.Code == "" && !allowNoOperator {
 		out = append(out, "NESSUN EDUCATORE ASSEGNATO")
 	}
+
 	if act.Raw.LinguaAttivita != "" && strings.ToLower(act.Raw.LinguaAttivita) != "it" {
 		out = append(out, "ATTIVITA PREVISTA IN LINGUA: "+act.Raw.LinguaAttivita)
 	}
