@@ -127,13 +127,14 @@ func GetDifferentSchoolGroups(rows []model.ParsedRow) []model.SchoolGroup {
 	grouped := make([]*model.SchoolGroup, 0)
 
 	for _, row := range rows {
-		if row.Raw.NomeScuola == "" && row.Raw.Classe == "" {
+		if row.Raw.NomeScuola == "" && row.Raw.Classe == "" && row.Raw.Codice == "" {
 			continue
 		}
-		key := Base64Sha([]byte(
-			strings.ToLower(
-				row.Raw.Codice + "|" +
-					row.Raw.NomeScuola + "|" + row.Raw.Classe + "|" + row.Raw.Sezione)))
+		keyBuilder := row.Raw.Codice
+		if keyBuilder == "" {
+			keyBuilder = row.Raw.NomeScuola + "|" + row.Raw.Classe + "|" + row.Raw.Sezione
+		}
+		key := Base64Sha([]byte(strings.ToLower(keyBuilder)))
 
 		group, ok := index[key]
 		if !ok {
@@ -175,7 +176,7 @@ func GetDifferentSchoolGroups(rows []model.ParsedRow) []model.SchoolGroup {
 		}
 	}
 
-	sort.Slice(grouped, func(i, j int) bool {
+	sort.SliceStable(grouped, func(i, j int) bool {
 		c := strings.Compare(strings.ToLower(grouped[i].Codice), strings.ToLower(grouped[j].Codice))
 		if c != 0 {
 			return c < 0
@@ -196,7 +197,8 @@ func GetDifferentSchoolGroups(rows []model.ParsedRow) []model.SchoolGroup {
 	})
 
 	out := make([]model.SchoolGroup, 0, len(grouped))
-	for _, e := range grouped {
+	for i, e := range grouped {
+		e.NumeroSeq = i + 1
 		out = append(out, *e)
 	}
 	return out

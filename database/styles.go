@@ -135,7 +135,7 @@ var (
 				},
 				Font: &excelize.Font{
 					Color: "#FFFFFF",
-					Size:  9,
+					Size:  11,
 				},
 				Border: []excelize.Border{
 					{Type: "left", Color: "FFFFFF", Style: 1},
@@ -200,7 +200,7 @@ func buildForOperator(color string) Styles {
 		Common: StyleEntry{
 			Style: &excelize.Style{
 				Font: &excelize.Font{
-					Size: 9,
+					Size: 11,
 				},
 				Alignment: &excelize.Alignment{
 					Horizontal: "center",
@@ -222,7 +222,7 @@ func buildForOperator(color string) Styles {
 		Warning: StyleEntry{
 			Style: &excelize.Style{
 				Font: &excelize.Font{
-					Size: 9,
+					Size: 11,
 				},
 				Alignment: &excelize.Alignment{
 					Horizontal: "center",

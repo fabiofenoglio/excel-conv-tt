@@ -147,7 +147,7 @@ func writeDay(c WriteContext, day model.GroupedRows, startCell model.Cell, log *
 	zero := model.CellBox{}
 
 	minGroupWidth := uint(12)
-	minGroupWidthPerSlot := uint(6)
+	minGroupWidthPerSlot := uint(4)
 	minDayWidthInCells := uint(20)
 	boxCellHeight := float64(20)
 	moreSlotsAtBottom := 0 // add if you want to show some empty time rows after the last one
@@ -373,9 +373,18 @@ func writeDay(c WriteContext, day model.GroupedRows, startCell model.Cell, log *
 	cursor.MoveRow(startCell.Row())
 	cursor.MoveColumn(startCell.Column())
 
+	schoolGroups := GetDifferentSchoolGroups(day.Rows)
+	schoolGroupsIndex := make(map[string]model.SchoolGroup)
+	for _, sg := range schoolGroups {
+		if sg.Codice == "" {
+			continue
+		}
+		schoolGroupsIndex[sg.Codice] = sg
+	}
+
 	for _, group := range groupedByRoom {
 		log.Infof("placing activities for room %s", group.Key)
-		
+
 		for actIndex, act := range group.Rows {
 			var operator model.Operator
 			if act.Operator.Code != "" {
@@ -422,11 +431,16 @@ func writeDay(c WriteContext, day model.GroupedRows, startCell model.Cell, log *
 			// if merging the cells is NOT desired:
 			for r := actStartCell.Row(); r <= actEndCell.Row(); r++ {
 				c := actStartCell.AtRow(r)
+
 				// writeInCell := operator.Name
 				writeInCell := act.Raw.Codice
+				if decoded, ok := schoolGroupsIndex[act.Raw.Codice]; ok && decoded.NumeroSeq > 0 {
+					writeInCell = fmt.Sprintf("%d", decoded.NumeroSeq)
+				}
 				if writeInCell == "" {
 					writeInCell = operator.Name
 				}
+
 				if err := f.SetCellValue(c.SheetName(), c.Code(), writeInCell); err != nil {
 					return zero, err
 				}
@@ -515,7 +529,8 @@ func writeSchoolsForDay(c WriteContext, groups []model.SchoolGroup, startCell mo
 	for _, schoolGroup := range groups {
 		cursor.MoveColumn(startCell.Column())
 
-		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), schoolGroup.Codice); err != nil {
+		toWrite := fmt.Sprintf("%d", schoolGroup.NumeroSeq)
+		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
 			return zero, err
 		}
 		cursor.MoveRight(1)
@@ -524,7 +539,7 @@ func writeSchoolsForDay(c WriteContext, groups []model.SchoolGroup, startCell mo
 			return zero, err
 		}
 
-		toWrite := schoolGroup.NomeScuola
+		toWrite = schoolGroup.NomeScuola
 		if schoolGroup.TipologiaScuola != "" {
 			toWrite += "\n" + schoolGroup.TipologiaScuola
 		}

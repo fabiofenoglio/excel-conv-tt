@@ -3,6 +3,7 @@ package model
 type SchoolGroup struct {
 	Code string
 
+	NumeroSeq         int
 	Codice            string
 	TipologiaScuola   string
 	NomeScuola        string
