@@ -1,4 +1,4 @@
-package model
+package parser
 
 type ExcelRow struct {
 	Codice           string `column:"Codice" required:"true"`

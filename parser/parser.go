@@ -1,20 +1,17 @@
 package parser
 
 import (
-	"errors"
 	"fmt"
-	"reflect"
-	"regexp"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
 	_ "time/tzdata"
 
-	"github.com/xuri/excelize/v2"
+	"github.com/sirupsen/logrus"
 
+	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/database"
-	"github.com/fabiofenoglio/excelconv/logger"
 	"github.com/fabiofenoglio/excelconv/model"
 )
 
@@ -25,183 +22,56 @@ const (
 	layoutDateOnlyInITFormat  = "02/01/2006"
 )
 
-var (
-	localTimeZone *time.Location
-)
-
-func init() {
-	var err error
-	localTimeZone, err = time.LoadLocation("Europe/Rome")
-	if err != nil {
-		panic(err)
-	}
-}
-
-func Parse(input string) (model.ParsedData, error) {
+func Parse(input string, log *logrus.Logger) (model.ParsedData, error) {
 	zero := model.ParsedData{}
-	log := logger.GetLogger()
 
-	var err error
-
-	f, err := excelize.OpenFile(input)
+	excelRows, err := ReadFromFile(input, log)
 	if err != nil {
-		return zero, fmt.Errorf("error opening input file: %w", err)
+		return zero, fmt.Errorf("error reading from file: %w", err)
 	}
 
-	defer func() {
-		// Close the spreadsheet.
-		if closeErr := f.Close(); closeErr != nil {
-			log.Errorf("error closing input file: %s", closeErr.Error())
-		}
-	}()
+	results := make([]model.ParsedRow, 0, len(excelRows))
 
-	startingHeaderCell := model.NewCell("Organizzazione", 1, 4)
-
-	columnNameToFieldNameMap := make(map[string]string)
-	sampleRow := &model.ExcelRow{}
-	val := reflect.ValueOf(sampleRow).Elem()
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Type().Field(i)
-		columnName := field.Tag.Get("column")
-		if columnName != "" {
-			columnNameToFieldNameMap[columnName] = field.Name
-		}
-	}
-
-	currentHeaderCell := startingHeaderCell
-	headers := make([]string, 0, 10)
-	columnNumberToFieldNameMap := make(map[uint]string)
-	fieldNameToColumnNumberMap := make(map[string]uint)
-
-	for {
-		cell, err := f.GetCellValue(currentHeaderCell.SheetName(), currentHeaderCell.Code())
-		if err != nil {
-			return zero, fmt.Errorf("error reading header cell %s: %w", currentHeaderCell.Code(), err)
-		}
-		if cell == "" {
-			break
-		}
-		headers = append(headers, cell)
-		if len(headers) > 50 {
-			return zero, errors.New("too many headers found")
-		}
-
-		if mapsToFieldName, ok := columnNameToFieldNameMap[strings.TrimSpace(cell)]; ok {
-			log.Infof("column %s with header '%s' maps to known field '%s'", currentHeaderCell.ColumnName(), cell, mapsToFieldName)
-
-			columnNumberToFieldNameMap[currentHeaderCell.Column()] = mapsToFieldName
-			fieldNameToColumnNumberMap[mapsToFieldName] = currentHeaderCell.Column()
-		} else {
-			log.Warnf("column %s with header '%s' does not map to any known field", currentHeaderCell.ColumnName(), cell)
-		}
-
-		currentHeaderCell.MoveRight(1)
-	}
-
-	for i := 0; i < val.NumField(); i++ {
-		field := val.Type().Field(i)
-		columnName := field.Tag.Get("column")
-
-		required := false
-		requiredTag := field.Tag.Get("required")
-		if requiredTag != "" {
-			required, err = strconv.ParseBool(requiredTag)
-			if err != nil {
-				panic("invalid value for required tag: " + requiredTag)
-			}
-		}
-
-		if columnName != "" {
-			if mappedByColumnNumer, ok := fieldNameToColumnNumberMap[field.Name]; ok {
-				log.Infof("field '%s' is mapped by column '%d'", field.Name, mappedByColumnNumer)
-			} else {
-				errMsg := fmt.Sprintf("field '%s' is NOT mapped by any column", field.Name)
-				if required {
-					log.Error(errMsg)
-					return zero, errors.New(errMsg)
-				} else {
-					log.Warn(errMsg)
-				}
-			}
-		}
-	}
-
-	log.Info("mapping build completed")
-	log.Info("all required fields have a valid mapping column")
-
-	results := make([]model.ParsedRow, 0, 20)
-
-	currentCell := startingHeaderCell.AtBottom(1)
-
-	for {
-		row := model.ExcelRow{}
-		anyNonNil := false
-
-		for fieldName, columnNumber := range fieldNameToColumnNumberMap {
-			cell := currentCell.AtColumn(columnNumber)
-
-			cellContent, err := f.GetCellValue(cell.SheetName(), cell.Code())
-			if err != nil {
-				return zero, fmt.Errorf("error reading content cell %v: %w", cell, err)
-			}
-
-			trimmed := strings.TrimSpace(cellContent)
-			if trimmed != cellContent {
-				log.Warnf("cell %s has a value that starts or finishes with spaces or newline, this should be avoided (value is '%s')",
-					cell.Code(), cellContent)
-			}
-			cellContent = trimmed
-
-			if cellContent != "" {
-				anyNonNil = true
-				reflect.ValueOf(&row).Elem().FieldByName(fieldName).SetString(cellContent)
-
-				log.Infof("setting row %d.%s to '%s' by cell %s", len(results), fieldName, cellContent, cell.Code())
-			}
-		}
-
-		if !anyNonNil {
-			break
-		}
-
+	for i, row := range excelRows {
 		err := validate(row)
 		if err != nil {
-			errMsg := fmt.Sprintf("error validating row %d", currentCell.Row())
+			errMsg := fmt.Sprintf("error validating row %d", i)
 			log.WithError(err).Errorf(errMsg+": %s", err.Error())
 			return zero, fmt.Errorf(errMsg+": %w", err)
 		}
 
 		parsed, err := parseRow(row)
 		if err != nil {
-			errMsg := fmt.Sprintf("error parsing row %d", currentCell.Row())
+			errMsg := fmt.Sprintf("error parsing row %d", i)
 			log.WithError(err).Errorf(errMsg+": %s", err.Error())
 			return zero, fmt.Errorf(errMsg+": %w", err)
 		}
 
 		results = append(results, parsed)
-
-		currentCell.MoveBottom(1)
 	}
 
 	roomsMap := make(map[string]model.Room)
 	operatorsMap := make(map[string]model.Operator)
 
 	for _, a := range results {
-		if a.Room.Code != "" {
+		if a.Room != model.NoRoom {
 			roomsMap[a.Room.Code] = a.Room
 		}
-		if a.Operator.Code != "" {
+		if a.Operator != model.NoOperator {
 			operatorsMap[a.Operator.Code] = a.Operator
 		}
 	}
 
-	// import room definitions from database if not yet found
-	for k, def := range database.KnownRoomMap() {
-		if _, ok := roomsMap[k]; !ok {
-			roomsMap[k] = model.Room{
-				Name: def.Name,
-				Code: k,
-			}
+	for _, room := range database.GetKnownRooms() {
+		fromName := roomFromName(room.Code)
+		if _, ok := roomsMap[fromName.Code]; !ok {
+			roomsMap[fromName.Code] = fromName
+		}
+	}
+	for _, operator := range database.GetKnownOperators() {
+		fromName := operatorFromName(operator.Code)
+		if _, ok := operatorsMap[fromName.Code]; !ok {
+			operatorsMap[fromName.Code] = fromName
 		}
 	}
 
@@ -210,6 +80,10 @@ func Parse(input string) (model.ParsedData, error) {
 		rooms = append(rooms, r)
 	}
 	sort.Slice(rooms, func(i, j int) bool {
+		preferredSortRes := rooms[i].PreferredOrder - rooms[j].PreferredOrder
+		if preferredSortRes != 0 {
+			return preferredSortRes < 0
+		}
 		return rooms[i].Name < rooms[j].Name
 	})
 
@@ -230,25 +104,8 @@ func Parse(input string) (model.ParsedData, error) {
 	}, nil
 }
 
-func validate(r model.ExcelRow) error {
-	if r.Codice == "" {
-		return errors.New("codice is required")
-	}
-
-	timeRangeRegexp := regexp.MustCompile(`^([0-9]|0[0-9]|1[0-9]|2[0-3]):([0-9]|[0-5][0-9])\s*\-\s*([0-9]|0[0-9]|1[0-9]|2[0-3]):([0-9]|[0-5][0-9])$`)
-	if !timeRangeRegexp.MatchString(r.Orario) {
-		return fmt.Errorf("orario non valido, atteso HH:MM-HH:MM e non '%s'", r.Orario)
-	}
-
-	dateRegexp := regexp.MustCompile(`^\d{2}\/\d{2}\/\d{4}$`)
-	if !dateRegexp.MatchString(r.Data) {
-		return fmt.Errorf("data non valida, atteso GG/MM/YYYY e non '%s'", r.Data)
-	}
-
-	return nil
-}
-
-func parseRow(r model.ExcelRow) (model.ParsedRow, error) {
+func parseRow(r ExcelRow) (model.ParsedRow, error) {
+	localTimeZone := config.TimeZone()
 
 	data, err := time.Parse(layoutDateOnlyInITFormat, r.Data)
 	if err != nil {
@@ -288,23 +145,8 @@ func parseRow(r model.ExcelRow) (model.ParsedRow, error) {
 		end = time.Date(data.Year(), data.Month(), data.Day()+1, end.Hour(), end.Minute(), end.Second(), 0, localTimeZone)
 	}
 
-	room := model.Room{}
-	if r.Aula != "" {
-		room.Code = strings.ToLower(r.Aula)
-		room.Name = r.Aula
-	} else {
-		room.Code = ""
-		room.Name = "???"
-	}
-
-	operator := model.Operator{}
-	if r.Educatore != "" {
-		operator.Code = strings.ToLower(r.Educatore)
-		operator.Name = r.Educatore
-	} else {
-		operator.Code = ""
-		operator.Name = "???"
-	}
+	room := roomFromName(r.Aula)
+	operator := operatorFromName(r.Educatore)
 
 	numPaganti := 0
 	numGratuiti := 0
@@ -330,45 +172,42 @@ func parseRow(r model.ExcelRow) (model.ParsedRow, error) {
 	}
 
 	r2 := model.ParsedRow{
-		Raw:               r,
-		StartAt:           start,
-		EndAt:             end,
-		Duration:          end.Sub(start),
-		Room:              room,
-		Operator:          operator,
-		NumPaganti:        numPaganti,
-		NumGratuiti:       numGratuiti,
-		NumAccompagnatori: numAccompagnatori,
+		Code:     r.Codice,
+		StartAt:  start,
+		EndAt:    end,
+		Duration: end.Sub(start),
+		Room:     room,
+		Operator: operator,
+		Activity: model.Activity{
+			Description: r.Attivita,
+			Language:    r.LinguaAttivita,
+			Type:        r.Tipologia,
+		},
+		School: model.School{
+			Type: r.TipologiaScuola,
+			Name: r.NomeScuola,
+		},
+		SchoolClass: model.SchoolClass{
+			Number:  r.Classe,
+			Section: r.Sezione,
+		},
+		GroupComposition: model.GroupComposition{
+			Total:           uint(numPaganti + numGratuiti + numAccompagnatori),
+			NumPaying:       uint(numPaganti),
+			NumFree:         uint(numGratuiti),
+			NumAccompanying: uint(numAccompagnatori),
+		},
+		DateString:    r.Data,
+		BookingNotes:  r.NotaPrenotazione,
+		OperatorNotes: r.NotaOperatore,
+		Bus:           r.Bus,
+		PaymentStatus: model.PaymentStatus{
+			PaymentAdvance:       r.Acconti,
+			PaymentAdvanceStatus: r.StatoAcconti,
+		},
 	}
 
 	r2.Warnings = getWarnings(r2)
 
 	return r2, nil
-}
-
-func getWarnings(act model.ParsedRow) []string {
-	out := make([]string, 0)
-	if act.Room.Code == "" {
-		out = append(out, "NESSUNA AULA O RISORSA ASSEGNATA")
-	}
-
-	allowNoOperator := false
-	if act.Room.Code != "" {
-		roomInfo := database.GetEntryForRoom(act.Room.Code)
-		if roomInfo.AllowMissingOperator {
-			allowNoOperator = true
-		}
-	}
-
-	if act.Operator.Code == "" && !allowNoOperator {
-		out = append(out, "NESSUN EDUCATORE ASSEGNATO")
-	}
-
-	if act.Raw.LinguaAttivita != "" && strings.ToLower(act.Raw.LinguaAttivita) != "it" {
-		out = append(out, "ATTIVITA PREVISTA IN LINGUA: "+act.Raw.LinguaAttivita)
-	}
-	if act.NumGratuiti > 0 {
-		out = append(out, fmt.Sprintf("SONO PRESENTI %d INGRESSI GRATUITI", act.NumGratuiti))
-	}
-	return out
 }

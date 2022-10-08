@@ -1,6 +1,8 @@
-package model
+package excel
 
-import "fmt"
+import (
+	"fmt"
+)
 
 type Cell interface {
 	SheetName() string

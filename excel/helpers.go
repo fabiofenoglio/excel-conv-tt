@@ -1,4 +1,4 @@
-package model
+package excel
 
 // Function to print Excel column
 // name for a given column number

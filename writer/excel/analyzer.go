@@ -1,13 +1,13 @@
-package services
+package excel
 
 import "github.com/fabiofenoglio/excelconv/model"
 
 func GetMaxHoursRangeToDisplay(rows []model.ParsedRow) (start, end int) {
 
 	// compute the max time range to be shown between all days
-
 	minHourToShow := 12
 	maxHourToShow := 13
+
 	for _, activity := range rows {
 		if !activity.StartAt.IsZero() && activity.StartAt.Hour() < minHourToShow {
 			minHourToShow = activity.StartAt.Hour()

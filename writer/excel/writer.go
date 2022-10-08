@@ -1,8 +1,7 @@
-package services
+package excel
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -11,57 +10,58 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/xuri/excelize/v2"
 
-	"github.com/fabiofenoglio/excelconv/database"
-	"github.com/fabiofenoglio/excelconv/logger"
+	"github.com/fabiofenoglio/excelconv/aggregator"
+	"github.com/fabiofenoglio/excelconv/excel"
 	"github.com/fabiofenoglio/excelconv/model"
-	"github.com/fabiofenoglio/excelconv/parser"
+	"github.com/fabiofenoglio/excelconv/writer"
+)
+
+const (
+	layoutTimeOnlyInReadableFormat = "15:04"
 )
 
 type WriteContext struct {
-	minHour     int
-	maxHour     int
-	minutesStep int
-	allData     model.ParsedData
-	outputFile  *excelize.File
+	minHour       int
+	maxHour       int
+	minutesStep   int
+	allData       model.ParsedData
+	outputFile    *excelize.File
+	styleRegister *StyleRegister
 }
 
-func Run(args model.Args) error {
-	input := args.PositionalArgs.InputFile
-	if input == "" {
-		return errors.New("missing input file")
-	}
-	log := logger.GetLogger()
-	if args.Verbose {
-		log.SetLevel(logrus.DebugLevel)
-	}
+type WriterImpl struct{}
 
-	// parse the specified input file
+var _ writer.Writer = &WriterImpl{}
 
-	parsed, err := parser.Parse(input)
-	if err != nil {
-		return fmt.Errorf("error reading from input file: %w", err)
-	}
-	log.Infof("found %d rows", len(parsed.Rows))
+func (w *WriterImpl) ComputeDefaultOutputFile(inputFile string) string {
+	outPath := filepath.Dir(inputFile)
+	inputName := filepath.Base(inputFile)
+	inputExt := filepath.Ext(inputFile)
+	return outPath + "/" + strings.TrimSuffix(inputName, inputExt) + "-convertito.xlsx"
+}
+
+func (w *WriterImpl) Write(parsed model.ParsedData, log *logrus.Logger) ([]byte, error) {
+	log.Debug("writing with excel writer")
 
 	// compute the max time range to be shown between all days
 
 	minHourToShow, maxHourToShow := GetMaxHoursRangeToDisplay(parsed.Rows)
-	log.Infof("will show the range %d to %d (inclusive)", minHourToShow, maxHourToShow)
+	log.Debugf("will show the range %d to %d (inclusive)", minHourToShow, maxHourToShow)
 
 	// group by start date, ordering by start time ASC
 
-	groupedByStartDate := GroupByStartDay(parsed.Rows)
+	groupedByStartDate := aggregator.GroupByStartDay(parsed.Rows)
 	log.Infof("found activities spanning %d different days", len(groupedByStartDate))
 
 	f := excelize.NewFile()
-	database.RegisterStyles(f)
 
 	wc := WriteContext{
-		minHour:     minHourToShow,
-		maxHour:     maxHourToShow,
-		minutesStep: 15,
-		allData:     parsed,
-		outputFile:  f,
+		minHour:       minHourToShow,
+		maxHour:       maxHourToShow,
+		minutesStep:   15,
+		allData:       parsed,
+		outputFile:    f,
+		styleRegister: NewStyleRegister(f),
 	}
 
 	sheetName := fmt.Sprintf(
@@ -70,34 +70,34 @@ func Run(args model.Args) error {
 		groupedByStartDate[len(groupedByStartDate)-1].Rows[0].StartAt.Format("0201"),
 	)
 
-	startingCell := model.NewCell(sheetName, 2, 1)
+	startingCell := excel.NewCell(sheetName, 2, 1)
 
 	// Rename the default sheet and set it as active
 	f.SetSheetName("Sheet1", startingCell.SheetName())
 	f.SetActiveSheet(f.GetSheetIndex(startingCell.SheetName()))
 
 	if err := f.SetRowHeight(startingCell.SheetName(), 1, 20); err != nil {
-		return err
+		return nil, err
 	}
 	if err := f.SetRowHeight(startingCell.SheetName(), 2, 30); err != nil {
-		return err
+		return nil, err
 	}
 	if err := f.SetRowHeight(startingCell.SheetName(), 3, 20); err != nil {
-		return err
+		return nil, err
 	}
 	if err := f.SetColWidth(startingCell.SheetName(), "A", "A", 3); err != nil {
-		return err
+		return nil, err
 	}
 
 	// write day by day
-	daysGridCursor := model.NewCellWithTracker(startingCell)
+	daysGridCursor := excel.NewCellWithTracker(startingCell)
 
 	for _, groupByDay := range groupedByStartDate {
-		log.Infof("writing day %v", groupByDay.Key)
+		log.Debugf("writing day %v", groupByDay.Key)
 
 		err := writeDayWithDetails(wc, groupByDay, daysGridCursor, log)
 		if err != nil {
-			return fmt.Errorf("error writing day: %w", err)
+			return nil, fmt.Errorf("error writing day: %w", err)
 		}
 
 		// MOVE CURSOR IN POSITION FOR NEXT DAY
@@ -109,22 +109,23 @@ func Run(args model.Args) error {
 	daysGridCursor.MoveAtRightTopOfCoveredArea()
 	{
 		// write operator colours
-		err := writeOperatorsLegenda(wc, daysGridCursor)
+		err := writeOperatorsLegenda(wc, daysGridCursor, parsed.Operators)
 		if err != nil {
-			return fmt.Errorf("error writing operator colors: %w", err)
+			return nil, fmt.Errorf("error writing operator colors: %w", err)
 		}
 	}
 
 	// Save spreadsheet by the given path.
-	if err := saveToOutputFile(computeOutputFile(input), f); err != nil {
-		return err
+	out, err := f.WriteToBuffer()
+	if err != nil {
+		return nil, fmt.Errorf("error writing output to buffer: %w", err)
 	}
-	return nil
+	return out.Bytes(), nil
 }
 
-func writeDayWithDetails(c WriteContext, groupByDay model.GroupedRows, startCell model.Cell, log *logrus.Logger) error {
+func writeDayWithDetails(c WriteContext, groupByDay aggregator.GroupedByDay, startCell excel.Cell, log *logrus.Logger) error {
 
-	tracker := model.NewCellWithTracker(startCell.Copy())
+	tracker := excel.NewCellWithTracker(startCell.Copy())
 
 	// WRITE DAY GRID W/ ROOMS AND ACTIVITIES
 	{
@@ -136,7 +137,7 @@ func writeDayWithDetails(c WriteContext, groupByDay model.GroupedRows, startCell
 	tracker.MoveAtBottomLeftOfCoveredArea()
 
 	// WRITE SCHOOL/GROUPS FOR THE DAY
-	schoolGroupsForThisDay := GetDifferentSchoolGroups(groupByDay.Rows)
+	schoolGroupsForThisDay := aggregator.GetDifferentActivityGroups(groupByDay.Rows)
 	if len(schoolGroupsForThisDay) > 0 {
 		err := writeSchoolsForDay(c, schoolGroupsForThisDay, tracker)
 		if err != nil {
@@ -156,7 +157,7 @@ func writeDayWithDetails(c WriteContext, groupByDay model.GroupedRows, startCell
 	return nil
 }
 
-func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, log *logrus.Logger) error {
+func writeDayGrid(c WriteContext, day aggregator.GroupedByDay, startCell excel.Cell, log *logrus.Logger) error {
 	minGroupWidth := uint(12)
 	minGroupWidthPerSlot := uint(5)
 	minDayWidthInCells := uint(20)
@@ -175,7 +176,7 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 	cursor.MoveRight(1)
 	cursor.MoveBottom(1)
 
-	groupedByRoom := GroupByRoom(c.allData, day.Rows)
+	groupedByRoom := aggregator.GroupByRoom(c.allData, day.Rows)
 
 	roomColumnNumbers := make(map[string]uint)
 	roomWidths := make(map[string]uint)
@@ -183,26 +184,23 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 	// write the header with the columns / rooms
 
 	for _, group := range groupedByRoom {
-		log.Infof("writing header for room group %s", group.Key)
+		log.Debugf("writing header for room group %s", group.Room.Code)
 
-		room := c.allData.RoomsMap[group.Key]
 		numActs := uint(len(group.Rows))
 
-		if room.Code == "" && numActs == 0 {
+		if group.Room.Code == "" && numActs == 0 {
+			continue
+		}
+		if numActs == 0 && group.Room.Slots == 0 {
 			continue
 		}
 
-		roomInfo := database.GetEntryForRoom(room.Code)
-		if numActs == 0 && roomInfo.Slots == 0 {
-			continue
+		if group.Room.Slots > 0 && numActs < group.Room.Slots {
+			numActs = group.Room.Slots
 		}
 
-		if roomInfo.Slots > 0 && numActs < roomInfo.Slots {
-			numActs = roomInfo.Slots
-		}
-
-		toWrite := room.Name
-		if room.Code == "" {
+		toWrite := group.Room.Name
+		if group.Room.Code == "" {
 			toWrite = "???"
 		}
 
@@ -210,8 +208,8 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 			return err
 		}
 
-		roomColumnNumbers[room.Code] = cursor.Column()
-		roomWidths[room.Code] = numActs
+		roomColumnNumbers[group.Room.Code] = cursor.Column()
+		roomWidths[group.Room.Code] = numActs
 
 		desiredWidth := minGroupWidth
 
@@ -283,7 +281,7 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 	breaking := false
 
 	numOfTimeRows := uint(0)
-	log.Infof("writing time columns starting from %s", currentTime.String())
+	log.Debugf("writing time columns starting from %s", currentTime.String())
 	for {
 		effectiveHour := currentTime.Hour()
 		if rolledOver {
@@ -338,27 +336,30 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 	// draw the box for the whole day
 	boxStart := startCell.Copy()
 	boxEnd := startCell.Copy().AtRight(actualWidth - 1).AtBottom(numOfTimeRows + 2)
-	if err := f.SetCellStyle(startCell.SheetName(), boxStart.Code(), boxEnd.Code(), database.DayBoxStyleID()); err != nil {
+	if err := f.SetCellStyle(
+		startCell.SheetName(), boxStart.Code(), boxEnd.Code(),
+		c.styleRegister.DayBoxStyle().Common.StyleID,
+	); err != nil {
 		return err
 	}
 
 	// draw the box for each room
 	for _, group := range groupedByRoom {
-		log.Infof("drawing boxes for room %s", group.Key)
+		log.Debugf("drawing boxes for room %s", group.Room.Code)
 
-		if _, ok := roomWidths[group.Key]; !ok {
-			log.Infof("skipping room %s", group.Key)
+		if _, ok := roomWidths[group.Room.Code]; !ok {
+			log.Debugf("skipping room %s", group.Room.Code)
 			continue
 		}
 
-		columnsForRoomStartAt := roomColumnNumbers[group.Key]
+		columnsForRoomStartAt := roomColumnNumbers[group.Room.Code]
 
 		boxStart := startCell.AtColumn(columnsForRoomStartAt).AtBottom(3)
-		boxEnd := boxStart.AtRight(roomWidths[group.Key] - 1).AtBottom(numOfTimeRows - 1)
+		boxEnd := boxStart.AtRight(roomWidths[group.Room.Code] - 1).AtBottom(numOfTimeRows - 1)
 
-		styleToUse := database.DayRoomBoxStyleID()
+		styleToUse := c.styleRegister.DayRoomBoxStyle().Common.StyleID
 		if len(group.Rows) == 0 {
-			styleToUse = database.UnusedRoomStyleID()
+			styleToUse = c.styleRegister.UnusedRoomStyle().Common.StyleID
 		}
 		if err := f.SetCellStyle(startCell.SheetName(), boxStart.Code(), boxEnd.Code(), styleToUse); err != nil {
 			return err
@@ -367,8 +368,14 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 		boxHeaderStart := boxStart.AtTop(1)
 		boxHeaderEnd := boxHeaderStart.AtColumn(boxEnd.Column())
 
-		roomInfo := database.GetEntryForRoom(group.Key)
-		if err := f.SetCellStyle(cursor.SheetName(), boxHeaderStart.Code(), boxHeaderEnd.Code(), roomInfo.Styles.Common.StyleID); err != nil {
+		var style *Style
+		if group.Room != model.NoRoom {
+			style = c.styleRegister.RoomStyle(group.Room.BackgroundColor)
+		} else {
+			style = c.styleRegister.NoRoomStyle()
+		}
+
+		if err := f.SetCellStyle(cursor.SheetName(), boxHeaderStart.Code(), boxHeaderEnd.Code(), style.Common.StyleID); err != nil {
 			return err
 		}
 	}
@@ -377,18 +384,17 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 	cursor.MoveRow(startCell.Row())
 	cursor.MoveColumn(startCell.Column())
 
-	schoolGroups := GetDifferentSchoolGroups(day.Rows)
-	schoolGroupsIndex := make(map[string]model.SchoolGroup)
+	schoolGroups := aggregator.GetDifferentActivityGroups(day.Rows)
+	schoolGroupsIndex := make(map[string]aggregator.ActivityGroup)
 	for _, sg := range schoolGroups {
-		if sg.Codice == "" {
+		if sg.Code == "" {
 			continue
 		}
-		schoolGroupsIndex[sg.Codice] = sg
+		schoolGroupsIndex[sg.Code] = sg
 	}
 
 	for _, group := range groupedByRoom {
-		log.Infof("placing activities for room %s", group.Key)
-		roomInfo := database.GetEntryForRoom(group.Key)
+		log.Debugf("placing activities for room %s", group.Room.Code)
 
 		for actIndex, act := range group.Rows {
 			var operator model.Operator
@@ -444,7 +450,7 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 						writeInCell = fmt.Sprintf("%d", decoded.NumeroSeq)
 					}
 				*/
-				writeInCell := shortenGroupCode(act.Raw.Codice)
+				writeInCell := shortenGroupCode(act.Code)
 				if writeInCell == "" && operator.Code != "" {
 					writeInCell = operator.Name
 				}
@@ -455,25 +461,28 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 			}
 
 			// apply style depending on the operator
-			var style int
-			if act.Operator.Code == "" && roomInfo.AllowMissingOperator {
-				style = database.NoOperatorNeededStyleID()
+			var style *Style
+			if act.Operator.Code == "" && group.Room.AllowMissingOperator {
+				style = c.styleRegister.NoOperatorNeededStyle()
+			} else if act.Operator.Code == "" {
+				style = c.styleRegister.NoOperatorStyle()
 			} else {
-				operatorInfo := database.GetEntryForOperator(act.Operator.Code)
-				style = operatorInfo.Styles.Common.StyleID
-				if len(act.Warnings) > 0 && operatorInfo.Styles.Warning.Style != nil {
-					style = operatorInfo.Styles.Warning.StyleID
-				}
+				style = c.styleRegister.OperatorStyle(operator.BackgroundColor)
 			}
 
-			if err := f.SetCellStyle(actStartCell.SheetName(), actStartCell.Code(), actEndCell.Code(), style); err != nil {
+			styleID := style.Common.StyleID
+			if len(act.Warnings) > 0 {
+				styleID = style.WarningIDOrDefault()
+			}
+
+			if err := f.SetCellStyle(actStartCell.SheetName(), actStartCell.Code(), actEndCell.Code(), styleID); err != nil {
 				return err
 			}
 
 			// write some comment with additional info
-			cellComment := buildComment(act)
+			cellComment := buildContentOfActivityComment(act)
 			if cellComment != "" {
-				comment(f, actStartCell, strings.TrimSpace(cellComment))
+				addCommentToCell(f, actStartCell, strings.TrimSpace(cellComment))
 			}
 		}
 	}
@@ -488,7 +497,7 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 		day.Rows[0].StartAt.Format("Mon 2 January")); err != nil {
 		return err
 	}
-	if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(), database.DayHeaderStyleID()); err != nil {
+	if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(), c.styleRegister.DayHeaderStyle().Common.StyleID); err != nil {
 		return err
 	}
 
@@ -506,7 +515,8 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), "?"); err != nil {
 		return err
 	}
-	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(), database.ToBeFilledStyleID()); err != nil {
+	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(),
+		c.styleRegister.ToBeFilledStyle().Common.StyleID); err != nil {
 		return err
 	}
 
@@ -523,21 +533,22 @@ func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, l
 	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), "?"); err != nil {
 		return err
 	}
-	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(), database.ToBeFilledStyleID()); err != nil {
+	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(),
+		c.styleRegister.ToBeFilledStyle().Common.StyleID); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func writeSchoolsForDay(c WriteContext, groups []model.SchoolGroup, startCell model.Cell) error {
+func writeSchoolsForDay(c WriteContext, groups []aggregator.ActivityGroup, startCell excel.Cell) error {
 	f := c.outputFile
 	cursor := startCell.Copy()
 
 	for _, schoolGroup := range groups {
 		cursor.MoveColumn(startCell.Column())
 
-		toWrite := fmt.Sprintf("%s", schoolGroup.Codice)
+		toWrite := fmt.Sprintf("%s", schoolGroup.Code)
 		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
 			return err
 		}
@@ -547,11 +558,7 @@ func writeSchoolsForDay(c WriteContext, groups []model.SchoolGroup, startCell mo
 			return err
 		}
 
-		toWrite = schoolGroup.NomeScuola
-		if schoolGroup.TipologiaScuola != "" {
-			toWrite += "\n" + schoolGroup.TipologiaScuola
-		}
-
+		toWrite = schoolGroup.School.FullDescription()
 		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
 			return err
 		}
@@ -561,13 +568,7 @@ func writeSchoolsForDay(c WriteContext, groups []model.SchoolGroup, startCell mo
 		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
 			return err
 		}
-		toWrite = ""
-		if schoolGroup.Classe != "" {
-			toWrite = schoolGroup.Classe
-		}
-		if schoolGroup.Sezione != "" {
-			toWrite += " " + schoolGroup.Sezione
-		}
+		toWrite = schoolGroup.SchoolClass.FullDescription()
 		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
 			return err
 		}
@@ -579,13 +580,13 @@ func writeSchoolsForDay(c WriteContext, groups []model.SchoolGroup, startCell mo
 		}
 
 		toWrite = fmt.Sprintf("%d (%d",
-			schoolGroup.NumPaganti+schoolGroup.NumGratuiti+schoolGroup.NumAccompagnatori,
-			schoolGroup.NumPaganti)
-		if schoolGroup.NumAccompagnatori > 0 {
-			toWrite += fmt.Sprintf(", %d acc.", schoolGroup.NumAccompagnatori)
+			schoolGroup.Composition.Total,
+			schoolGroup.Composition.NumPaying)
+		if schoolGroup.Composition.NumAccompanying > 0 {
+			toWrite += fmt.Sprintf(", %d acc.", schoolGroup.Composition.NumAccompanying)
 		}
-		if schoolGroup.NumGratuiti > 0 {
-			toWrite += fmt.Sprintf("+ %d GRAT.", schoolGroup.NumGratuiti)
+		if schoolGroup.Composition.NumFree > 0 {
+			toWrite += fmt.Sprintf("+ %d GRAT.", schoolGroup.Composition.NumFree)
 		}
 		toWrite += ")"
 
@@ -603,7 +604,7 @@ func writeSchoolsForDay(c WriteContext, groups []model.SchoolGroup, startCell mo
 	return nil
 }
 
-func writePlaceholdersForDay(c WriteContext, startCell model.Cell) error {
+func writePlaceholdersForDay(c WriteContext, startCell excel.Cell) error {
 	f := c.outputFile
 	cursor := startCell.Copy()
 
@@ -639,7 +640,7 @@ func writePlaceholdersForDay(c WriteContext, startCell model.Cell) error {
 			return err
 		}
 		if err := f.SetCellStyle(cursor.SheetName(), valueCursors.Code(), valueCursors.Code(),
-			database.ToBeFilledStyleID()); err != nil {
+			c.styleRegister.ToBeFilledStyle().Common.StyleID); err != nil {
 			return err
 		}
 
@@ -653,9 +654,9 @@ func writePlaceholdersForDay(c WriteContext, startCell model.Cell) error {
 	return nil
 }
 
-func writeOperatorsLegenda(c WriteContext, startCell model.Cell) error {
+func writeOperatorsLegenda(c WriteContext, startCell excel.Cell, operators []model.Operator) error {
 	f := c.outputFile
-	cursor := startCell.Copy()
+	cursor := startCell.Copy().AtBottom(2)
 
 	if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(3).Code()); err != nil {
 		return err
@@ -666,8 +667,8 @@ func writeOperatorsLegenda(c WriteContext, startCell model.Cell) error {
 
 	cursor.MoveBottom(1)
 
-	for _, op := range c.allData.Operators {
-		operatorInfo := database.GetEntryForOperator(op.Code)
+	for _, op := range operators {
+		style := c.styleRegister.OperatorStyle(op.BackgroundColor)
 
 		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(3).Code()); err != nil {
 			return err
@@ -676,7 +677,7 @@ func writeOperatorsLegenda(c WriteContext, startCell model.Cell) error {
 			return err
 		}
 		if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(),
-			operatorInfo.Common.StyleID); err != nil {
+			style.Common.StyleID); err != nil {
 			return err
 		}
 
@@ -686,109 +687,84 @@ func writeOperatorsLegenda(c WriteContext, startCell model.Cell) error {
 	return nil
 }
 
-func buildComment(act model.ParsedRow) string {
+func buildContentOfActivityComment(act model.ParsedRow) string {
 	cellComment := ``
 
 	for _, warning := range act.Warnings {
-		cellComment += "ATTENZIONE: " + warning + "\n\n"
+		cellComment += "ATTENZIONE: " + warning.Message + "\n\n"
 	}
 
-	if act.Raw.Attivita != "" {
-		cellComment += act.Raw.Attivita
-
-		if act.Raw.Tipologia != "" {
-			cellComment += " (" + act.Raw.Tipologia + ")"
+	if act.Activity.Description != "" {
+		cellComment += act.Activity.Description
+		if act.Activity.Type != "" {
+			cellComment += " (" + act.Activity.Type + ")"
 		}
-		if act.Raw.Codice != "" {
-			cellComment += " [" + act.Raw.Codice + "]"
-		}
-
 		cellComment += "\n\n"
 
-	} else if act.Raw.Tipologia != "" {
-		cellComment += "Tipologia: " + act.Raw.Tipologia + "\n"
+	} else if act.Activity.Type != "" {
+		cellComment += "Tipologia: " + act.Activity.Type + "\n"
 	}
 
-	if act.Raw.Orario != "" {
-		cellComment += "Orario: " + act.Raw.Orario + "\n"
+	if act.TimeString != "" {
+		cellComment += "Orario: " + act.TimeString + "\n"
 	}
-	if act.Raw.Educatore != "" {
-		cellComment += "Educatore: " + act.Raw.Educatore + "\n"
+	if act.Operator.Name != "" {
+		cellComment += "Educatore: " + act.Operator.Name + "\n"
 	}
-	if act.Raw.Aula != "" {
-		cellComment += "Aula: " + act.Raw.Aula + "\n"
-	}
-
-	if act.Raw.NotaOperatore != "" {
-		cellComment += "Nota operatore: " + act.Raw.NotaOperatore + "\n"
-	}
-	if act.Raw.NotaPrenotazione != "" {
-		cellComment += "Nota prenotazione: " + act.Raw.NotaPrenotazione + "\n"
+	if act.Room.Name != "" {
+		cellComment += "Aula: " + act.Room.Name + "\n"
 	}
 
-	if act.Raw.Classe != "" || act.Raw.Sezione != "" {
-		if act.Raw.Classe != "" {
-			cellComment += "Classe: " + act.Raw.Classe + " "
-			if act.Raw.Sezione != "" {
-				cellComment += act.Raw.Sezione
-			}
-		} else {
-			cellComment += "Sezione: " + act.Raw.NomeScuola
-		}
-		cellComment += "\n"
+	if act.OperatorNotes != "" {
+		cellComment += "Nota operatore: " + act.OperatorNotes + "\n"
+	}
+	if act.BookingNotes != "" {
+		cellComment += "Nota prenotazione: " + act.BookingNotes + "\n"
 	}
 
-	if act.NumPaganti > 0 || act.NumAccompagnatori > 0 || act.NumGratuiti > 0 {
+	if act.SchoolClass.FullDescription() != "" {
+		cellComment += "Classe: " + act.SchoolClass.FullDescription() + "\n"
+	}
+
+	if act.GroupComposition.Total > 0 {
 		c := ""
-		tot := 0
 		entries := 0
-		if act.NumPaganti > 0 {
-			c += fmt.Sprintf("%d paganti, ", act.NumPaganti)
-			tot += act.NumPaganti
+		if act.GroupComposition.NumPaying > 0 {
+			c += fmt.Sprintf("%d paganti, ", act.GroupComposition.NumPaying)
 			entries++
 		}
-		if act.NumGratuiti > 0 {
-			c += fmt.Sprintf("%d gratuiti, ", act.NumGratuiti)
-			tot += act.NumGratuiti
+		if act.GroupComposition.NumFree > 0 {
+			c += fmt.Sprintf("%d gratuiti, ", act.GroupComposition.NumFree)
 			entries++
 		}
-		if act.NumAccompagnatori > 0 {
-			c += fmt.Sprintf("%d accompagnatori, ", act.NumAccompagnatori)
-			tot += act.NumAccompagnatori
+		if act.GroupComposition.NumAccompanying > 0 {
+			c += fmt.Sprintf("%d accompagnatori, ", act.GroupComposition.NumAccompanying)
 			entries++
 		}
-
 		if entries > 1 {
-			c = strings.TrimSuffix(c, ", ") + fmt.Sprintf(" (%d totali)", tot)
+			c = strings.TrimSuffix(c, ", ") + fmt.Sprintf(" (%d totali)", act.GroupComposition.Total)
 		}
-
 		cellComment += strings.TrimSuffix(c, ", ") + "\n"
 	}
 
-	if act.Raw.NomeScuola != "" || act.Raw.TipologiaScuola != "" {
-		if act.Raw.TipologiaScuola != "" {
-			cellComment += act.Raw.TipologiaScuola + " "
-		}
-		if act.Raw.NomeScuola != "" {
-			cellComment += act.Raw.NomeScuola
-		}
-		cellComment += "\n"
+	if act.School.FullDescription() != "" {
+		cellComment += act.School.FullDescription() + "\n"
 	}
 
-	if act.Raw.Bus != "" {
-		cellComment += "Bus: " + act.Raw.Bus + "\n"
+	if act.Bus != "" {
+		cellComment += "Bus: " + act.Bus + "\n"
 	}
-	if act.Raw.Acconti != "" && act.Raw.Acconti != "-" {
-		cellComment += "Acconti: " + act.Raw.Acconti + "\n"
+	if act.PaymentStatus.PaymentAdvance != "" && act.PaymentStatus.PaymentAdvance != "-" {
+		cellComment += "Acconti: " + act.PaymentStatus.PaymentAdvance + "\n"
 	}
-	if act.Raw.StatoAcconti != "" && act.Raw.StatoAcconti != "-" {
-		cellComment += "Acconti: " + act.Raw.StatoAcconti + "\n"
+	if act.PaymentStatus.PaymentAdvanceStatus != "" && act.PaymentStatus.PaymentAdvanceStatus != "-" {
+		cellComment += "Stato acconti: " + act.PaymentStatus.PaymentAdvanceStatus + "\n"
 	}
 
 	return strings.TrimSpace(cellComment)
 }
 
-func comment(f *excelize.File, cell model.Cell, content string) error {
+func addCommentToCell(f *excelize.File, cell excel.Cell, content string) error {
 	type serializable struct {
 		Author string `json:"author"`
 		Text   string `json:"text"`
@@ -809,18 +785,4 @@ func shortenGroupCode(code string) string {
 		return strings.TrimPrefix(code, "P")
 	}
 	return code
-}
-
-func computeOutputFile(inputFile string) string {
-	outPath := filepath.Dir(inputFile)
-	inputName := filepath.Base(inputFile)
-	inputExt := filepath.Ext(inputFile)
-	return outPath + "/" + strings.TrimSuffix(inputName, inputExt) + "-convertito" + inputExt
-}
-
-func saveToOutputFile(outputFile string, f *excelize.File) error {
-	if err := f.SaveAs(outputFile); err != nil {
-		return fmt.Errorf("error writing output: %w", err)
-	}
-	return nil
 }
