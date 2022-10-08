@@ -21,7 +21,7 @@ func operatorFromName(name string) model.Operator {
 	if !isKnown {
 		backgroundColor = pickColor("op/" + code)
 	} else {
-		if len(knownOperator.Name) > len(name) {
+		if len(knownOperator.Name) > 0 {
 			name = knownOperator.Name
 		}
 	}

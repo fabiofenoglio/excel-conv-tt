@@ -556,7 +556,7 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator.ActivityGroup, start
 		}
 		cursor.MoveRight(1)
 
-		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(5).Code()); err != nil {
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(10).Code()); err != nil {
 			return err
 		}
 
@@ -565,7 +565,7 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator.ActivityGroup, start
 			return err
 		}
 
-		cursor.MoveRight(6)
+		cursor.MoveRight(11)
 
 		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
 			return err
@@ -627,7 +627,7 @@ func writePlaceholdersForDay(c WriteContext, startCell excel.Cell) error {
 	cursor = startCell.AtBottom(1)
 
 	for _, rowToWrite := range rowsToWrite {
-		valueCursors := cursor.AtRight(7)
+		valueCursors := cursor.AtRight(10)
 		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), valueCursors.AtLeft(1).Code()); err != nil {
 			return err
 		}
@@ -638,7 +638,7 @@ func writePlaceholdersForDay(c WriteContext, startCell excel.Cell) error {
 		if err := f.SetCellValue(cursor.SheetName(), valueCursors.Code(), "?"); err != nil {
 			return err
 		}
-		if err := f.MergeCell(cursor.SheetName(), valueCursors.Code(), valueCursors.AtRight(7).Code()); err != nil {
+		if err := f.MergeCell(cursor.SheetName(), valueCursors.Code(), valueCursors.AtRight(9).Code()); err != nil {
 			return err
 		}
 		if err := f.SetCellStyle(cursor.SheetName(), valueCursors.Code(), valueCursors.Code(),
@@ -710,10 +710,10 @@ func buildContentOfActivityComment(act model.ParsedRow) string {
 	if act.TimeString != "" {
 		cellComment += "Orario: " + act.TimeString + "\n"
 	}
-	if act.Operator.Name != "" {
+	if act.Operator.Code != "" {
 		cellComment += "Educatore: " + act.Operator.Name + "\n"
 	}
-	if act.Room.Name != "" {
+	if act.Room.Code != "" {
 		cellComment += "Aula: " + act.Room.Name + "\n"
 	}
 
@@ -772,7 +772,7 @@ func addCommentToCell(f *excelize.File, cell excel.Cell, content string) error {
 		Text   string `json:"text"`
 	}
 	v := serializable{
-		Author: "planner",
+		Author: "planner ",
 		Text:   content,
 	}
 	serialized, err := json.Marshal(v)

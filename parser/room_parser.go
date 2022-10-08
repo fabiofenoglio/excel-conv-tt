@@ -21,7 +21,7 @@ func roomFromName(name string) model.Room {
 	if !isKnown {
 		backgroundColor = pickColor("room/" + code)
 	} else {
-		if len(knownRoom.Name) > len(name) {
+		if len(knownRoom.Name) > 0 {
 			name = knownRoom.Name
 		}
 	}

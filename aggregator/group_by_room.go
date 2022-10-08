@@ -3,6 +3,7 @@ package aggregator
 import (
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/fabiofenoglio/excelconv/model"
 )
@@ -35,15 +36,7 @@ func GroupByRoom(allData model.ParsedData, rows []model.ParsedRow) []GroupedByRo
 		}
 
 		// find which slot to fill
-		fits := false
-		fitsAt := 0
-		for slotIndex, slot := range group.Slots {
-			fits = activityFitsInTime(activity, slot.Rows)
-			if fits {
-				fitsAt = slotIndex
-				break
-			}
-		}
+		fitsAt, fits := getIndexOfAvailableSlot(activity, group.Slots)
 
 		if fits {
 			group.Slots[fitsAt].Rows = append(group.Slots[fitsAt].Rows, activity)
@@ -53,8 +46,8 @@ func GroupByRoom(allData model.ParsedData, rows []model.ParsedRow) []GroupedByRo
 				SlotIndex: uint(len(group.Slots)),
 				Rows:      nil,
 			}
-			group.Slots = append(group.Slots, newSlot)
 			newSlot.Rows = append(newSlot.Rows, activity)
+			group.Slots = append(group.Slots, newSlot)
 		}
 
 		group.TotalInAllSlots++
@@ -112,12 +105,58 @@ func GroupByRoom(allData model.ParsedData, rows []model.ParsedRow) []GroupedByRo
 	return out
 }
 
-func activityFitsInTime(act model.ParsedRow, occupied []model.ParsedRow) bool {
+func getIndexOfAvailableSlot(act model.ParsedRow, slots []GroupedByRoomSlot) (int, bool) {
+	// first attempt: look for available slot in slots that are there already,
+	// with time clearance before and after to keep the grid as clean as possible.
+	fits := false
+	fitsAt := 0
+	for slotIndex, slot := range slots {
+		fits = activityFitsInTime(act, slot.Rows, time.Minute*1)
+		if fits {
+			fitsAt = slotIndex
+			break
+		}
+	}
+
+	// found some available place without adding more slots,
+	// with clearance, returning immediately as that's the optimal outcome
+	if fits {
+		return fitsAt, true
+	}
+
+	if act.Room.Slots > 0 && len(slots) < int(act.Room.Slots) {
+		// we have more available slots before reaching the limit.
+		// return saying that we didn't find a suitable spot and another slot should be added
+		return -1, false
+	}
+
+	// we didn't find an optimal place in an existing spot,
+	// we don't have more room for available slots
+	// so we try to fit without time clearance
+	// this way we avoid adding slots if not absolutely necessary.
+	fits = false
+	fitsAt = 0
+	for slotIndex, slot := range slots {
+		fits = activityFitsInTime(act, slot.Rows, 0)
+		if fits {
+			fitsAt = slotIndex
+			break
+		}
+	}
+	if fits {
+		return fitsAt, true
+	}
+	return -1, false
+}
+
+func activityFitsInTime(act model.ParsedRow, occupied []model.ParsedRow, clearance time.Duration) bool {
 	if act.StartAt.IsZero() || act.EndAt.IsZero() {
 		return true
 	}
+	actStartWithClearance := act.StartAt.Add(-clearance)
+	actEndWithClearance := act.EndAt.Add(clearance)
 	for _, otherAct := range occupied {
-		if act.StartAt.Before(otherAct.EndAt) && otherAct.StartAt.Before(act.EndAt) {
+		if actStartWithClearance.Before(otherAct.EndAt) && otherAct.StartAt.Before(actEndWithClearance) {
 			return false
 		}
 	}
