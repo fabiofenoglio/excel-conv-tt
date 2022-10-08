@@ -14,12 +14,16 @@ func operatorFromName(name string) model.Operator {
 		return model.NoOperator
 	}
 
-	knownRoom, isKnown := database.GetKnownOperator(code)
+	knownOperator, isKnown := database.GetKnownOperator(code)
 
-	backgroundColor := knownRoom.BackgroundColor
+	backgroundColor := knownOperator.BackgroundColor
 
 	if !isKnown {
 		backgroundColor = pickColor("op/" + code)
+	} else {
+		if len(knownOperator.Name) > len(name) {
+			name = knownOperator.Name
+		}
 	}
 
 	return model.Operator{

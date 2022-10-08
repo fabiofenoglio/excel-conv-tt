@@ -9,11 +9,18 @@ var (
 func init() {
 	knownOperatorMap = make(map[string]KnownOperator)
 
-	registerKnownOperators(KnownOperator{
-		Code:            "a",
-		Name:            "Op. A",
-		BackgroundColor: "#E0EBF5",
-	})
+	registerKnownOperators(
+		KnownOperator{
+			Code:            "a",
+			Name:            "Op. A",
+			BackgroundColor: "#9b65bf",
+		},
+		KnownOperator{
+			Code:            "ed1",
+			Name:            "Educatore 1",
+			BackgroundColor: "#9c8341",
+		},
+	)
 }
 
 func registerKnownOperators(o ...KnownOperator) {
