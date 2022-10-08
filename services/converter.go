@@ -90,51 +90,26 @@ func Run(args model.Args) error {
 	}
 
 	// write day by day
-	dayCursor := startingCell.Copy()
+	daysGridCursor := model.NewCellWithTracker(startingCell)
 
 	for _, groupByDay := range groupedByStartDate {
 		log.Infof("writing day %v", groupByDay.Key)
 
-		dayCursor.MoveRow(startingCell.Row())
-
-		tracker := model.NewCellWithTracker(dayCursor)
-
-		// code block for variable scoping
-		{
-			err := writeDayGrid(wc, groupByDay, tracker, log)
-			if err != nil {
-				return fmt.Errorf("error writing row: %w", err)
-			}
-		}
-		tracker.MoveAtBottomLeftOfCoveredArea()
-
-		schoolGroupsForThisDay := GetDifferentSchoolGroups(groupByDay.Rows)
-		if len(schoolGroupsForThisDay) > 0 {
-			tracker.MoveBottom(1)
-
-			err := writeSchoolsForDay(wc, schoolGroupsForThisDay, tracker)
-			if err != nil {
-				return fmt.Errorf("error writing schools for day: %w", err)
-			}
-			tracker.MoveAtBottomLeftOfCoveredArea()
+		err := writeDayWithDetails(wc, groupByDay, daysGridCursor, log)
+		if err != nil {
+			return fmt.Errorf("error writing day: %w", err)
 		}
 
-		// code block for variable scoping
-		{
-			err := writePlaceholdersForDay(wc, tracker)
-			if err != nil {
-				return fmt.Errorf("error writing placeholders for OOD: %w", err)
-			}
-			tracker.MoveAtBottomLeftOfCoveredArea()
-		}
-
-		dayCursor.MoveColumn(tracker.CoveredArea().TopRight().Column() + 1)
+		// MOVE CURSOR IN POSITION FOR NEXT DAY
+		daysGridCursor.
+			MoveRow(startingCell.Row()).
+			MoveColumn(daysGridCursor.CoveredArea().RightColumn() + 1)
 	}
 
-	dayCursor.MoveRow(startingCell.Row()).MoveBottom(2).MoveRight(1)
+	daysGridCursor.MoveAtRightTopOfCoveredArea()
 	{
 		// write operator colours
-		err := writeOperatorsLegenda(wc, dayCursor)
+		err := writeOperatorsLegenda(wc, daysGridCursor)
 		if err != nil {
 			return fmt.Errorf("error writing operator colors: %w", err)
 		}
@@ -147,7 +122,41 @@ func Run(args model.Args) error {
 	return nil
 }
 
-func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.CellWithTracker, log *logrus.Logger) error {
+func writeDayWithDetails(c WriteContext, groupByDay model.GroupedRows, startCell model.Cell, log *logrus.Logger) error {
+
+	tracker := model.NewCellWithTracker(startCell.Copy())
+
+	// WRITE DAY GRID W/ ROOMS AND ACTIVITIES
+	{
+		err := writeDayGrid(c, groupByDay, tracker, log)
+		if err != nil {
+			return fmt.Errorf("error writing row: %w", err)
+		}
+	}
+	tracker.MoveAtBottomLeftOfCoveredArea()
+
+	// WRITE SCHOOL/GROUPS FOR THE DAY
+	schoolGroupsForThisDay := GetDifferentSchoolGroups(groupByDay.Rows)
+	if len(schoolGroupsForThisDay) > 0 {
+		err := writeSchoolsForDay(c, schoolGroupsForThisDay, tracker)
+		if err != nil {
+			return fmt.Errorf("error writing schools for day: %w", err)
+		}
+	}
+	tracker.MoveAtBottomLeftOfCoveredArea()
+
+	// WRITE PLACEHOLDERS FOR ORDER OF THE DAY
+	{
+		err := writePlaceholdersForDay(c, tracker)
+		if err != nil {
+			return fmt.Errorf("error writing placeholders for OOD: %w", err)
+		}
+	}
+
+	return nil
+}
+
+func writeDayGrid(c WriteContext, day model.GroupedRows, startCell model.Cell, log *logrus.Logger) error {
 	minGroupWidth := uint(12)
 	minGroupWidthPerSlot := uint(5)
 	minDayWidthInCells := uint(20)

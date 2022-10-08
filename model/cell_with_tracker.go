@@ -22,6 +22,24 @@ type CellWithTrackerImpl struct {
 }
 
 func NewCellWithTracker(cell Cell) *CellWithTrackerImpl {
+	if cellIsTrackerAlready, ok := cell.(CellWithTracker); ok {
+		cellToUsedAsParentTracker := cellIsTrackerAlready.(*CellWithTrackerImpl)
+		cp := &CellWithTrackerImpl{
+			cell: &CellImpl{
+				c:         cell.Column(),
+				r:         cell.Row(),
+				sheetName: cell.SheetName(),
+			},
+			minColumn: cell.Column(),
+			minRow:    cell.Row(),
+			maxColumn: cell.Column(),
+			maxRow:    cell.Row(),
+			parent:    cellToUsedAsParentTracker,
+		}
+		cellToUsedAsParentTracker.children = append(cellToUsedAsParentTracker.children, cp)
+		return cp
+	}
+
 	return &CellWithTrackerImpl{
 		cell:      cell,
 		minColumn: cell.Column(),
@@ -164,7 +182,11 @@ func (c *CellWithTrackerImpl) coveredArea() CellBox {
 
 func (c *CellWithTrackerImpl) copy() *CellWithTrackerImpl {
 	cp := &CellWithTrackerImpl{
-		cell:      c.cell.Copy(),
+		cell: &CellImpl{
+			c:         c.cell.Column(),
+			r:         c.cell.Row(),
+			sheetName: c.cell.SheetName(),
+		},
 		minColumn: c.minColumn,
 		minRow:    c.minRow,
 		maxColumn: c.maxColumn,
