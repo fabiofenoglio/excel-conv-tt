@@ -186,7 +186,7 @@ func writeDayGrid(c WriteContext, day aggregator.GroupedByDay, startCell excel.C
 	for _, group := range groupedByRoom {
 		log.Debugf("writing header for room group %s", group.Room.Code)
 
-		numActs := uint(len(group.Rows))
+		numActs := uint(len(group.Slots))
 
 		if group.Room.Code == "" && numActs == 0 {
 			continue
@@ -358,7 +358,7 @@ func writeDayGrid(c WriteContext, day aggregator.GroupedByDay, startCell excel.C
 		boxEnd := boxStart.AtRight(roomWidths[group.Room.Code] - 1).AtBottom(numOfTimeRows - 1)
 
 		styleToUse := c.styleRegister.DayRoomBoxStyle().Common.StyleID
-		if len(group.Rows) == 0 {
+		if group.TotalInAllSlots == 0 {
 			styleToUse = c.styleRegister.UnusedRoomStyle().Common.StyleID
 		}
 		if err := f.SetCellStyle(startCell.SheetName(), boxStart.Code(), boxEnd.Code(), styleToUse); err != nil {
@@ -396,93 +396,95 @@ func writeDayGrid(c WriteContext, day aggregator.GroupedByDay, startCell excel.C
 	for _, group := range groupedByRoom {
 		log.Debugf("placing activities for room %s", group.Room.Code)
 
-		for actIndex, act := range group.Rows {
-			var operator model.Operator
-			if act.Operator.Code != "" {
-				operator, _ = c.allData.OperatorsMap[act.Operator.Code]
-			}
-			if operator.Code == "" {
-				operator.Name = "???"
-			}
+		for slotIndex, slot := range group.Slots {
+			for _, act := range slot.Rows {
+				var operator model.Operator
+				if act.Operator.Code != "" {
+					operator, _ = c.allData.OperatorsMap[act.Operator.Code]
+				}
+				if operator.Code == "" {
+					operator.Name = "???"
+				}
 
-			columnsForRoomStartAt := roomColumnNumbers[act.Room.Code]
-			cursor.MoveColumn(columnsForRoomStartAt + uint(actIndex))
-			cursor.MoveRow(startCell.Row() + 3)
+				columnsForRoomStartAt := roomColumnNumbers[act.Room.Code]
+				cursor.MoveColumn(columnsForRoomStartAt + uint(slotIndex))
+				cursor.MoveRow(startCell.Row() + 3)
 
-			inRange := false
-			exited := false
-			timeCursor := firstTime
-			i := 0
+				inRange := false
+				exited := false
+				timeCursor := firstTime
+				i := 0
 
-			actStartCell := cursor.Copy()
-			actEndCell := cursor.Copy()
+				actStartCell := cursor.Copy()
+				actEndCell := cursor.Copy()
 
-			for {
-				if !inRange {
-					if !exited && !timeCursor.Before(act.StartAt) {
-						inRange = true
-						actStartCell.MoveRow(startCell.Row() + 3 + uint(i))
+				for {
+					if !inRange {
+						if !exited && !timeCursor.Before(act.StartAt) {
+							inRange = true
+							actStartCell.MoveRow(startCell.Row() + 3 + uint(i))
+						}
+					} else {
+						if !timeCursor.Before(act.EndAt) {
+							inRange = false
+							exited = true
+							actEndCell.MoveRow(startCell.Row() + 3 + uint(i-1))
+						}
 					}
+
+					if exited {
+						break
+					}
+
+					timeCursor = timeCursor.Add(time.Minute * time.Duration(c.minutesStep))
+					i++
+				}
+
+				// if merging the cells is NOT desired:
+				for r := actStartCell.Row(); r <= actEndCell.Row(); r++ {
+					c := actStartCell.AtRow(r)
+
+					/*
+						// writeInCell := operator.Name
+						writeInCell := act.Raw.Codice
+						if decoded, ok := schoolGroupsIndex[act.Raw.Codice]; ok && decoded.NumeroSeq > 0 {
+							writeInCell = fmt.Sprintf("%d", decoded.NumeroSeq)
+						}
+					*/
+					writeInCell := shortenGroupCode(act.Code)
+					if writeInCell == "" && operator.Code != "" {
+						writeInCell = operator.Name
+					}
+
+					if err := f.SetCellValue(c.SheetName(), c.Code(), writeInCell); err != nil {
+						return err
+					}
+				}
+
+				// apply style depending on the operator
+				var style *Style
+				if act.Operator.Code == "" && group.Room.AllowMissingOperator {
+					style = c.styleRegister.NoOperatorNeededStyle()
+				} else if act.Operator.Code == "" {
+					style = c.styleRegister.NoOperatorStyle()
 				} else {
-					if !timeCursor.Before(act.EndAt) {
-						inRange = false
-						exited = true
-						actEndCell.MoveRow(startCell.Row() + 3 + uint(i-1))
-					}
+					style = c.styleRegister.OperatorStyle(operator.BackgroundColor)
 				}
 
-				if exited {
-					break
+				styleID := style.Common.StyleID
+				if len(act.Warnings) > 0 {
+					styleID = style.WarningIDOrDefault()
 				}
 
-				timeCursor = timeCursor.Add(time.Minute * time.Duration(c.minutesStep))
-				i++
-			}
-
-			// if merging the cells is NOT desired:
-			for r := actStartCell.Row(); r <= actEndCell.Row(); r++ {
-				c := actStartCell.AtRow(r)
-
-				/*
-					// writeInCell := operator.Name
-					writeInCell := act.Raw.Codice
-					if decoded, ok := schoolGroupsIndex[act.Raw.Codice]; ok && decoded.NumeroSeq > 0 {
-						writeInCell = fmt.Sprintf("%d", decoded.NumeroSeq)
-					}
-				*/
-				writeInCell := shortenGroupCode(act.Code)
-				if writeInCell == "" && operator.Code != "" {
-					writeInCell = operator.Name
-				}
-
-				if err := f.SetCellValue(c.SheetName(), c.Code(), writeInCell); err != nil {
+				if err := f.SetCellStyle(actStartCell.SheetName(), actStartCell.Code(), actEndCell.Code(), styleID); err != nil {
 					return err
 				}
-			}
 
-			// apply style depending on the operator
-			var style *Style
-			if act.Operator.Code == "" && group.Room.AllowMissingOperator {
-				style = c.styleRegister.NoOperatorNeededStyle()
-			} else if act.Operator.Code == "" {
-				style = c.styleRegister.NoOperatorStyle()
-			} else {
-				style = c.styleRegister.OperatorStyle(operator.BackgroundColor)
-			}
-
-			styleID := style.Common.StyleID
-			if len(act.Warnings) > 0 {
-				styleID = style.WarningIDOrDefault()
-			}
-
-			if err := f.SetCellStyle(actStartCell.SheetName(), actStartCell.Code(), actEndCell.Code(), styleID); err != nil {
-				return err
-			}
-
-			// write some comment with additional info
-			cellComment := buildContentOfActivityComment(act)
-			if cellComment != "" {
-				addCommentToCell(f, actStartCell, strings.TrimSpace(cellComment))
+				// write some comment with additional info
+				cellComment := buildContentOfActivityComment(act)
+				if cellComment != "" {
+					addCommentToCell(f, actStartCell, strings.TrimSpace(cellComment))
+				}
 			}
 		}
 	}

@@ -23,7 +23,6 @@ func registerKnownOperators(o ...KnownOperator) {
 		}
 		knownOperatorMap[strings.ToLower(obj.Code)] = obj
 	}
-
 }
 
 func GetKnownOperator(code string) (KnownOperator, bool) {

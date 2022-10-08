@@ -120,8 +120,8 @@ func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
 
 			trimmed := strings.TrimSpace(cellContent)
 			if trimmed != cellContent {
-				log.Warnf("cell %s has a value that starts or finishes with spaces or newline, this should be avoided (value is '%s')",
-					cell.Code(), cellContent)
+				log.Warnf("cell %s has a value that starts or finishes with spaces or newline, this should be avoided",
+					cell.Code())
 			}
 			cellContent = trimmed
 
