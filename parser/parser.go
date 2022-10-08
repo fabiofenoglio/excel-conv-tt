@@ -142,7 +142,7 @@ func Parse(input string) (model.ParsedData, error) {
 
 			cellContent, err := f.GetCellValue(cell.SheetName(), cell.Code())
 			if err != nil {
-				return zero, fmt.Errorf("error reading content cell %s: %w", cell.String(), err)
+				return zero, fmt.Errorf("error reading content cell %v: %w", cell, err)
 			}
 
 			trimmed := strings.TrimSpace(cellContent)
