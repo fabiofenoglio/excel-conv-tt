@@ -1,0 +1,43 @@
+<div class="col-lg-8 mx-auto p-4 py-md-5">
+    <header class="d-flex align-items-center pb-3 mb-5 border-bottom">
+        <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
+            <i class="fs-2 me-3 bi bi-calendar-event"></i>
+            <span class="fs-4">{{ .PageTitle }}</span>
+        </a>
+    </header>
+
+    <main>
+        <table class="table table-sm">
+            <thead>
+            <tr>
+                <th scope="col">#</th>
+                {{ range .Rooms }}
+                <th scope="col">{{ .Name }}</th>
+                {{ end }}
+            </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <th scope="row">1</th>
+                <td>Mark</td>
+                <td>Otto</td>
+                <td>@mdo</td>
+            </tr>
+            <tr>
+                <th scope="row">2</th>
+                <td>Jacob</td>
+                <td>Thornton</td>
+                <td>@fat</td>
+            </tr>
+            <tr>
+                <th scope="row">3</th>
+                <td colspan="2">Larry the Bird</td>
+                <td>@twitter</td>
+            </tr>
+            </tbody>
+        </table>
+    </main>
+    <footer class="pt-5 my-5 text-muted border-top">
+        automatically generated at {{ .GenerationTimeStamp }}
+    </footer>
+</div>

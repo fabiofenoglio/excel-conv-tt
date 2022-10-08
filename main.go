@@ -16,7 +16,8 @@ import (
 	"github.com/fabiofenoglio/excelconv/parser"
 	"github.com/fabiofenoglio/excelconv/writer"
 	excelwriter "github.com/fabiofenoglio/excelconv/writer/excel"
-	"github.com/fabiofenoglio/excelconv/writer/json"
+	htmlwriter "github.com/fabiofenoglio/excelconv/writer/html"
+	jsonwriter "github.com/fabiofenoglio/excelconv/writer/json"
 )
 
 func main() {
@@ -109,7 +110,9 @@ func pickWriter(arg config.Args) (writer.Writer, error) {
 	case "excel":
 		return &excelwriter.WriterImpl{}, nil
 	case "json":
-		return &json.WriterImpl{}, nil
+		return &jsonwriter.WriterImpl{}, nil
+	case "html":
+		return &htmlwriter.WriterImpl{}, nil
 	}
 
 	return nil, fmt.Errorf("%s is not a valid output format (no writer available)", arg.Format)
