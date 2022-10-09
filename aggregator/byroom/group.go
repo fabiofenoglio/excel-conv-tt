@@ -1,4 +1,4 @@
-package aggregator
+package byroom
 
 import "github.com/fabiofenoglio/excelconv/model"
 

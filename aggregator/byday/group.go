@@ -1,4 +1,4 @@
-package aggregator
+package byday
 
 import "github.com/fabiofenoglio/excelconv/model"
 

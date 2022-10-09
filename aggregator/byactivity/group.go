@@ -1,4 +1,4 @@
-package aggregator
+package byactivity
 
 import "github.com/fabiofenoglio/excelconv/model"
 

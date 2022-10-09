@@ -10,7 +10,9 @@ import (
 	"github.com/sirupsen/logrus"
 	"github.com/xuri/excelize/v2"
 
-	"github.com/fabiofenoglio/excelconv/aggregator"
+	"github.com/fabiofenoglio/excelconv/aggregator/byactivity"
+	"github.com/fabiofenoglio/excelconv/aggregator/byday"
+	"github.com/fabiofenoglio/excelconv/aggregator/byroom"
 	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/excel"
 	"github.com/fabiofenoglio/excelconv/model"
@@ -52,7 +54,7 @@ func (w *WriterImpl) Write(parsed model.ParsedData, args config.Args, log *logru
 
 	// group by start date, ordering by start time ASC
 
-	groupedByStartDate := aggregator.GroupByStartDay(parsed.Rows)
+	groupedByStartDate := byday.GroupByStartDay(parsed.Rows)
 	log.Infof("found activities spanning %d different days", len(groupedByStartDate))
 
 	f := excelize.NewFile()
@@ -126,7 +128,7 @@ func (w *WriterImpl) Write(parsed model.ParsedData, args config.Args, log *logru
 	return out.Bytes(), nil
 }
 
-func writeDayWithDetails(c WriteContext, groupByDay aggregator.GroupedByDay, startCell excel.Cell, log *logrus.Logger) error {
+func writeDayWithDetails(c WriteContext, groupByDay byday.GroupedByDay, startCell excel.Cell, log *logrus.Logger) error {
 
 	tracker := excel.NewCellWithTracker(startCell.Copy())
 
@@ -140,7 +142,7 @@ func writeDayWithDetails(c WriteContext, groupByDay aggregator.GroupedByDay, sta
 	tracker.MoveAtBottomLeftOfCoveredArea()
 
 	// WRITE SCHOOL/GROUPS FOR THE DAY
-	schoolGroupsForThisDay := aggregator.GetDifferentActivityGroups(groupByDay.Rows)
+	schoolGroupsForThisDay := byactivity.GetDifferentActivityGroups(groupByDay.Rows)
 	if len(schoolGroupsForThisDay) > 0 {
 		err := writeSchoolsForDay(c, schoolGroupsForThisDay, tracker)
 		if err != nil {
@@ -160,7 +162,7 @@ func writeDayWithDetails(c WriteContext, groupByDay aggregator.GroupedByDay, sta
 	return nil
 }
 
-func writeDayGrid(c WriteContext, day aggregator.GroupedByDay, startCell excel.Cell, log *logrus.Logger) error {
+func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, log *logrus.Logger) error {
 	minGroupWidth := uint(12)
 	minGroupWidthPerSlot := uint(5)
 	minDayWidthInCells := uint(20)
@@ -179,7 +181,7 @@ func writeDayGrid(c WriteContext, day aggregator.GroupedByDay, startCell excel.C
 	cursor.MoveRight(1)
 	cursor.MoveBottom(1)
 
-	groupedByRoom := aggregator.GroupByRoom(c.allData, day.Rows)
+	groupedByRoom := byroom.GroupByRoom(c.allData, day.Rows)
 
 	roomColumnNumbers := make(map[string]uint)
 	roomWidths := make(map[string]uint)
@@ -387,8 +389,8 @@ func writeDayGrid(c WriteContext, day aggregator.GroupedByDay, startCell excel.C
 	cursor.MoveRow(startCell.Row())
 	cursor.MoveColumn(startCell.Column())
 
-	schoolGroups := aggregator.GetDifferentActivityGroups(day.Rows)
-	schoolGroupsIndex := make(map[string]aggregator.ActivityGroup)
+	schoolGroups := byactivity.GetDifferentActivityGroups(day.Rows)
+	schoolGroupsIndex := make(map[string]byactivity.ActivityGroup)
 	for _, sg := range schoolGroups {
 		if sg.Code == "" {
 			continue
@@ -546,7 +548,7 @@ func writeDayGrid(c WriteContext, day aggregator.GroupedByDay, startCell excel.C
 	return nil
 }
 
-func writeSchoolsForDay(c WriteContext, groups []aggregator.ActivityGroup, startCell excel.Cell) error {
+func writeSchoolsForDay(c WriteContext, groups []byactivity.ActivityGroup, startCell excel.Cell) error {
 	f := c.outputFile
 	cursor := startCell.Copy()
 

@@ -1,9 +1,10 @@
-package aggregator
+package byactivity
 
 import (
 	"sort"
 	"strings"
 
+	"github.com/fabiofenoglio/excelconv/aggregator"
 	"github.com/fabiofenoglio/excelconv/model"
 )
 
@@ -19,7 +20,7 @@ func GetDifferentActivityGroups(rows []model.ParsedRow) []ActivityGroup {
 		if keyBuilder == "" {
 			keyBuilder = row.School.FullDescription() + "|" + row.SchoolClass.FullDescription()
 		}
-		key := Base64Sha([]byte(strings.ToLower(keyBuilder)))
+		key := aggregator.Base64Sha([]byte(strings.ToLower(keyBuilder)))
 
 		group, ok := index[key]
 		if !ok {
