@@ -84,7 +84,7 @@ func (w *WriterImpl) Write(parsed model.ParsedData, args config.Args, log *logru
 	if err := f.SetRowHeight(startingCell.SheetName(), 1, 20); err != nil {
 		return nil, err
 	}
-	if err := f.SetRowHeight(startingCell.SheetName(), 2, 30); err != nil {
+	if err := f.SetRowHeight(startingCell.SheetName(), 2, 20); err != nil {
 		return nil, err
 	}
 	if err := f.SetRowHeight(startingCell.SheetName(), 3, 20); err != nil {
@@ -508,7 +508,20 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 		return err
 	}
 
-	// write "MAT: ? POM: ?" placeholder
+	// write "MAT: # POM: #" counters
+	groupedByActivityGroup := byactivity.GetDifferentActivityGroups(day.Rows)
+	numGroupsMat, numGroupsPom := 0, 0
+	for _, actGroup := range groupedByActivityGroup {
+		if actGroup.AveragePresence.IsZero() {
+			continue
+		}
+		if actGroup.AveragePresence.Hour() <= 13 {
+			numGroupsMat++
+		} else {
+			numGroupsPom++
+		}
+	}
+
 	cursor = startCell.AtRight(actualWidth - 8).AtRow(1)
 	if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
 		return err
@@ -519,11 +532,7 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 	if err := f.MergeCell(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).AtRight(2).Code()); err != nil {
 		return err
 	}
-	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), "?"); err != nil {
-		return err
-	}
-	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(),
-		c.styleRegister.ToBeFilledStyle().Common.StyleID); err != nil {
+	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), fmt.Sprintf("%d", numGroupsMat)); err != nil {
 		return err
 	}
 
@@ -537,11 +546,7 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 	if err := f.MergeCell(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).AtRight(2).Code()); err != nil {
 		return err
 	}
-	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), "?"); err != nil {
-		return err
-	}
-	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).Code(),
-		c.styleRegister.ToBeFilledStyle().Common.StyleID); err != nil {
+	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), fmt.Sprintf("%d", numGroupsPom)); err != nil {
 		return err
 	}
 

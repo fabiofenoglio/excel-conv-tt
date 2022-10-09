@@ -1,6 +1,10 @@
 package byactivity
 
-import "github.com/fabiofenoglio/excelconv/model"
+import (
+	"time"
+
+	"github.com/fabiofenoglio/excelconv/model"
+)
 
 type ActivityGroup struct {
 	Code             string
@@ -8,4 +12,6 @@ type ActivityGroup struct {
 	School           model.School
 	SchoolClass      model.SchoolClass
 	Composition      model.GroupComposition
+
+	AveragePresence time.Time
 }

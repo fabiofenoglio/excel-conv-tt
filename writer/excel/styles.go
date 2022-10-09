@@ -44,7 +44,8 @@ var (
 		Common: &StyleDefinition{
 			Style: &excelize.Style{
 				Font: &excelize.Font{
-					Size: 16,
+					Size:  14,
+					Color: "#FFFFFF",
 				},
 				Alignment: &excelize.Alignment{
 					Horizontal: "center",
@@ -52,14 +53,14 @@ var (
 				},
 				Fill: excelize.Fill{
 					Type:    "pattern",
-					Color:   []string{"#947521"},
+					Color:   []string{"#48752C"},
 					Pattern: 1,
 				},
 				Border: []excelize.Border{
-					{Type: "left", Color: "333333", Style: 1},
-					{Type: "right", Color: "333333", Style: 1},
-					{Type: "top", Color: "333333", Style: 1},
-					{Type: "bottom", Color: "333333", Style: 1},
+					{Type: "left", Color: "#48752C", Style: 1},
+					{Type: "right", Color: "#48752C", Style: 1},
+					{Type: "top", Color: "#48752C", Style: 1},
+					{Type: "bottom", Color: "#48752C", Style: 1},
 				},
 			},
 		},

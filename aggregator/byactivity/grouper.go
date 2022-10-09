@@ -3,6 +3,7 @@ package byactivity
 import (
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/fabiofenoglio/excelconv/aggregator"
 	"github.com/fabiofenoglio/excelconv/model"
@@ -52,10 +53,36 @@ func GetDifferentActivityGroups(rows []model.ParsedRow) []ActivityGroup {
 		return false
 	})
 
+	// compute AveragePresence
+	for _, actGroup := range grouped {
+		var min, max time.Time
+
+		for _, act := range rows {
+			if act.Code != actGroup.Code || act.StartAt.IsZero() || act.EndAt.IsZero() {
+				continue
+			}
+			if min.IsZero() || act.StartAt.Before(min) {
+				min = act.StartAt
+			}
+			if max.IsZero() || act.EndAt.After(max) {
+				max = act.EndAt
+			}
+		}
+
+		if min.IsZero() || max.IsZero() || min == max {
+			continue
+		}
+
+		middle := min.Add(max.Sub(min) / 2)
+		actGroup.AveragePresence = middle
+	}
+
+	// compute sequential number
 	out := make([]ActivityGroup, 0, len(grouped))
 	for i, e := range grouped {
 		e.SequentialNumber = uint(i + 1)
 		out = append(out, *e)
 	}
+
 	return out
 }
