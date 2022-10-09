@@ -109,18 +109,101 @@ func getIndexOfAvailableSlot(act model.ParsedRow, slots []GroupedByRoomSlot) (in
 		return -1, false
 	}
 
-	// TODO: not just the first slot available but the one available
-	// will less activities
-
 	scoreMap := make(map[int]int)
+	numSlots := len(slots)
+
+	type scoresTable struct {
+		pointsForFittingWithSmallClearance        int
+		pointsForFittingWithLotClearance          int
+		penaltyForActivityImmediatelyToTheRight   int
+		penaltyForActivity2ndToTheRight           int
+		penaltyForActivityImmediatelyToTheLeft    int
+		pointsForOperatorHasOtherActivitiesInSlot int
+		penaltyForEachOtherActivityInSlot         int
+	}
+	scoreSettings := scoresTable{
+		pointsForFittingWithSmallClearance:        50,
+		pointsForFittingWithLotClearance:          10,
+		penaltyForActivityImmediatelyToTheRight:   30,
+		penaltyForActivity2ndToTheRight:           5,
+		penaltyForActivityImmediatelyToTheLeft:    5,
+		pointsForOperatorHasOtherActivitiesInSlot: 30,
+		penaltyForEachOtherActivityInSlot:         5,
+	}
 
 	for slotIndex, slot := range slots {
+		if !activityFitsInTime(act, slot.Rows, 0) {
+			// no way the activity fits, not considering this slot.
+			continue
+		}
+
 		score := 0
+
+		// prefer slots where it fits with some clearance before and after
+		if activityFitsInTime(act, slot.Rows, time.Minute*1) {
+			score += scoreSettings.pointsForFittingWithSmallClearance
+		}
+		if activityFitsInTime(act, slot.Rows, time.Minute*30) {
+			score += scoreSettings.pointsForFittingWithLotClearance
+		}
+
+		// prefer slots without activities on the right
+		if slotIndex < numSlots-1 {
+			if !activityFitsInTime(act, slots[slotIndex+1].Rows, 0) {
+				score -= scoreSettings.penaltyForActivityImmediatelyToTheRight
+			}
+		}
+		if slotIndex < numSlots-2 {
+			if !activityFitsInTime(act, slots[slotIndex+2].Rows, 0) {
+				score -= scoreSettings.penaltyForActivity2ndToTheRight
+			}
+		}
+
+		// prefer slots without activities on the left
+		if slotIndex > 0 {
+			if !activityFitsInTime(act, slots[slotIndex-1].Rows, 0) {
+				score -= scoreSettings.penaltyForActivityImmediatelyToTheLeft
+			}
+		}
+
+		// prefer slots where the same operator was
+		if act.Operator.Code != "" && sameOperatorHasOtherActivitiesInSlot(act.Operator.Code, slot) {
+			score += scoreSettings.pointsForOperatorHasOtherActivitiesInSlot
+		}
+
+		// prefer the more empty slots
+		score -= scoreSettings.penaltyForEachOtherActivityInSlot * len(slot.Rows)
+
+		// prefer slots on the left when everything else is the same
+		score -= slotIndex
 
 		scoreMap[slotIndex] = score
 	}
 
-	return -1, false
+	if len(scoreMap) == 0 {
+		// no valid slots
+		return -1, false
+	}
+
+	// pick the highest score
+	highestIndex, highestScore := -1, 0
+	for index, score := range scoreMap {
+		if highestIndex < 0 || score > highestScore {
+			highestScore = score
+			highestIndex = index
+		}
+	}
+
+	return highestIndex, true
+}
+
+func sameOperatorHasOtherActivitiesInSlot(operatorCode string, slot GroupedByRoomSlot) bool {
+	for _, otherAct := range slot.Rows {
+		if otherAct.Operator.Code == operatorCode {
+			return true
+		}
+	}
+	return false
 }
 
 func getIndexOfAvailableSlot_OLD(act model.ParsedRow, slots []GroupedByRoomSlot) (int, bool) {

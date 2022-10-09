@@ -8,6 +8,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
+	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/model"
 	"github.com/fabiofenoglio/excelconv/writer"
 )
@@ -16,7 +17,7 @@ type WriterImpl struct{}
 
 var _ writer.Writer = &WriterImpl{}
 
-func (w *WriterImpl) Write(parsed model.ParsedData, log *logrus.Logger) ([]byte, error) {
+func (w *WriterImpl) Write(parsed model.ParsedData, args config.Args, log *logrus.Logger) ([]byte, error) {
 	log.Debug("writing with JSON writer")
 
 	out := SerializableOutput{

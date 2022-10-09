@@ -5,4 +5,6 @@ type KnownOperator struct {
 	Name string
 
 	BackgroundColor string
+
+	Aliases []string
 }

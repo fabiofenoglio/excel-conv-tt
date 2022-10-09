@@ -64,7 +64,7 @@ func run(args config.Args) error {
 
 	// parse the specified input file
 
-	parsed, err := parser.Parse(input, log)
+	parsed, err := parser.Parse(input, args, log)
 	if err != nil {
 		return fmt.Errorf("error reading from input file: %w", err)
 	}
@@ -76,7 +76,7 @@ func run(args config.Args) error {
 	}
 
 	outputFile := writer.ComputeDefaultOutputFile(input)
-	bytes, err := writer.Write(parsed, log)
+	bytes, err := writer.Write(parsed, args, log)
 
 	if err != nil {
 		return fmt.Errorf("error running writer: %w", err)

@@ -24,6 +24,7 @@ func operatorFromName(name string) model.Operator {
 		if len(knownOperator.Name) > 0 {
 			name = knownOperator.Name
 		}
+		code = knownOperator.Code
 	}
 
 	return model.Operator{

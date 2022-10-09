@@ -7,6 +7,7 @@ import (
 	"strings"
 	_ "time/tzdata"
 
+	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/model"
 )
 
@@ -28,7 +29,7 @@ func validate(r ExcelRow) error {
 	return nil
 }
 
-func getWarnings(act model.ParsedRow) []model.Warning {
+func getWarnings(act model.ParsedRow, args config.Args) []model.Warning {
 	out := make([]model.Warning, 0)
 	if act.Room.Code == "" {
 		out = append(out, model.Warning{
@@ -37,7 +38,7 @@ func getWarnings(act model.ParsedRow) []model.Warning {
 		})
 	}
 
-	if act.Operator.Code == "" && !act.Room.AllowMissingOperator {
+	if args.EnableMissingOperatorsWarning && act.Operator.Code == "" && !act.Room.AllowMissingOperator {
 		out = append(out, model.Warning{
 			Code:    "no-operator",
 			Message: "NESSUN EDUCATORE ASSEGNATO",

@@ -7,6 +7,8 @@ type Args struct {
 
 	StdOut bool `short:"o" long:"out" description:"Print to stdout instead of file"`
 
+	EnableMissingOperatorsWarning bool `long:"missing-operator-warning" description:"Enable warnings for missing operators"`
+
 	PositionalArgs struct {
 		InputFile string `positional-arg-name:"input-file" required:"yes"`
 		Rest      []string

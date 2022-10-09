@@ -3,37 +3,44 @@ package database
 import "strings"
 
 var (
-	knownOperatorMap map[string]KnownOperator
+	knownOperatorMap      map[string]KnownOperator
+	knownOperatorAliasMap map[string]string
 )
 
 func init() {
 	knownOperatorMap = make(map[string]KnownOperator)
+	knownOperatorAliasMap = make(map[string]string)
 
 	registerKnownOperators(
 		KnownOperator{
 			Code:            "emanuele",
 			Name:            "Emanuele",
-			BackgroundColor: "#A0E77D",
+			BackgroundColor: "#A0FC4E",
+			Aliases:         []string{"ema", "emanuele balboni", "balboni"},
 		},
 		KnownOperator{
 			Code:            "jonida",
 			Name:            "Jo",
-			BackgroundColor: "#EF8677",
+			BackgroundColor: "#FBE6CB",
+			Aliases:         []string{"jo", "jonida halo", "jay", "halo"},
 		},
 		KnownOperator{
 			Code:            "marco",
 			Name:            "Marco",
-			BackgroundColor: "#82B6D9",
+			BackgroundColor: "#2B66B3",
+			Aliases:         []string{"marco brusaferro", "brusaferro", "brusa"},
 		},
 		KnownOperator{
 			Code:            "roberta",
 			Name:            "Roberta",
-			BackgroundColor: "#B5E3E3",
+			BackgroundColor: "#75FBFC",
+			Aliases:         []string{"robi", "boccomino"},
 		},
 		KnownOperator{
 			Code:            "lorenzo",
 			Name:            "Lorenzo",
-			BackgroundColor: "#EFECCC",
+			BackgroundColor: "#E7C656",
+			Aliases:         []string{"lorenzo colombo", "colombo"},
 		},
 	)
 }
@@ -44,10 +51,18 @@ func registerKnownOperators(o ...KnownOperator) {
 			panic("known operator must have a code")
 		}
 		knownOperatorMap[strings.ToLower(obj.Code)] = obj
+
+		for _, alias := range obj.Aliases {
+			knownOperatorAliasMap[alias] = obj.Code
+		}
 	}
 }
 
 func GetKnownOperator(code string) (KnownOperator, bool) {
+	if aliasOf, isAlias := knownOperatorAliasMap[code]; isAlias {
+		return GetKnownOperator(aliasOf)
+	}
+
 	res, ok := knownOperatorMap[code]
 	return res, ok
 }

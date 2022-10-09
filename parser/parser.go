@@ -22,7 +22,7 @@ const (
 	layoutDateOnlyInITFormat  = "02/01/2006"
 )
 
-func Parse(input string, log *logrus.Logger) (model.ParsedData, error) {
+func Parse(input string, args config.Args, log *logrus.Logger) (model.ParsedData, error) {
 	zero := model.ParsedData{}
 
 	excelRows, err := ReadFromFile(input, log)
@@ -40,7 +40,7 @@ func Parse(input string, log *logrus.Logger) (model.ParsedData, error) {
 			return zero, fmt.Errorf(errMsg+": %w", err)
 		}
 
-		parsed, err := parseRow(row)
+		parsed, err := parseRow(row, args)
 		if err != nil {
 			errMsg := fmt.Sprintf("error parsing row %d", i)
 			log.WithError(err).Errorf(errMsg+": %s", err.Error())
@@ -104,7 +104,7 @@ func Parse(input string, log *logrus.Logger) (model.ParsedData, error) {
 	}, nil
 }
 
-func parseRow(r ExcelRow) (model.ParsedRow, error) {
+func parseRow(r ExcelRow, args config.Args) (model.ParsedRow, error) {
 	localTimeZone := config.TimeZone()
 
 	data, err := time.Parse(layoutDateOnlyInITFormat, r.Data)
@@ -207,7 +207,7 @@ func parseRow(r ExcelRow) (model.ParsedRow, error) {
 		},
 	}
 
-	r2.Warnings = getWarnings(r2)
+	r2.Warnings = getWarnings(r2, args)
 
 	return r2, nil
 }

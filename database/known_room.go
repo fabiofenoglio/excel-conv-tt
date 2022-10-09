@@ -8,4 +8,6 @@ type KnownRoom struct {
 	PreferredOrder       int
 
 	BackgroundColor string
+
+	Aliases []string
 }

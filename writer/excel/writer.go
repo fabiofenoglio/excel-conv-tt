@@ -11,6 +11,7 @@ import (
 	"github.com/xuri/excelize/v2"
 
 	"github.com/fabiofenoglio/excelconv/aggregator"
+	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/excel"
 	"github.com/fabiofenoglio/excelconv/model"
 	"github.com/fabiofenoglio/excelconv/writer"
@@ -21,6 +22,7 @@ const (
 )
 
 type WriteContext struct {
+	args          config.Args
 	minHour       int
 	maxHour       int
 	minutesStep   int
@@ -40,7 +42,7 @@ func (w *WriterImpl) ComputeDefaultOutputFile(inputFile string) string {
 	return outPath + "/" + strings.TrimSuffix(inputName, inputExt) + "-convertito.xlsx"
 }
 
-func (w *WriterImpl) Write(parsed model.ParsedData, log *logrus.Logger) ([]byte, error) {
+func (w *WriterImpl) Write(parsed model.ParsedData, args config.Args, log *logrus.Logger) ([]byte, error) {
 	log.Debug("writing with excel writer")
 
 	// compute the max time range to be shown between all days
@@ -56,6 +58,7 @@ func (w *WriterImpl) Write(parsed model.ParsedData, log *logrus.Logger) ([]byte,
 	f := excelize.NewFile()
 
 	wc := WriteContext{
+		args:          args,
 		minHour:       minHourToShow,
 		maxHour:       maxHourToShow,
 		minutesStep:   15,
@@ -463,7 +466,7 @@ func writeDayGrid(c WriteContext, day aggregator.GroupedByDay, startCell excel.C
 
 				// apply style depending on the operator
 				var style *Style
-				if act.Operator.Code == "" && group.Room.AllowMissingOperator {
+				if act.Operator.Code == "" && (group.Room.AllowMissingOperator || !c.args.EnableMissingOperatorsWarning) {
 					style = c.styleRegister.NoOperatorNeededStyle()
 				} else if act.Operator.Code == "" {
 					style = c.styleRegister.NoOperatorStyle()

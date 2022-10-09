@@ -3,11 +3,13 @@ package database
 import "strings"
 
 var (
-	knownRoomMap map[string]KnownRoom
+	knownRoomMap      map[string]KnownRoom
+	knownRoomAliasMap map[string]string
 )
 
 func init() {
 	knownRoomMap = make(map[string]KnownRoom)
+	knownRoomAliasMap = make(map[string]string)
 
 	registerKnownRooms(KnownRoom{
 		Code:            "navetta",
@@ -35,13 +37,15 @@ func init() {
 		Slots:           5,
 		PreferredOrder:  -6,
 	}, KnownRoom{
-		Code:            "aula didattica 1",
+		Code:            "aula 1",
+		Aliases:         []string{"aula didattica 1"},
 		Name:            "Aula 1",
 		BackgroundColor: "#C7E8B5",
 		Slots:           2,
 		PreferredOrder:  -5,
 	}, KnownRoom{
 		Code:            "aula 2",
+		Aliases:         []string{"aula didattica 2"},
 		Name:            "Aula 2",
 		BackgroundColor: "#C7E8B5",
 		Slots:           2,
@@ -55,10 +59,18 @@ func registerKnownRooms(o ...KnownRoom) {
 			panic("known room must have a code")
 		}
 		knownRoomMap[strings.ToLower(obj.Code)] = obj
+
+		for _, alias := range obj.Aliases {
+			knownRoomAliasMap[alias] = obj.Code
+		}
 	}
 }
 
 func GetKnownRoom(code string) (KnownRoom, bool) {
+	if aliasOf, isAlias := knownRoomAliasMap[code]; isAlias {
+		return GetKnownRoom(aliasOf)
+	}
+
 	res, ok := knownRoomMap[code]
 	return res, ok
 }

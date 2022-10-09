@@ -24,6 +24,7 @@ func roomFromName(name string) model.Room {
 		if len(knownRoom.Name) > 0 {
 			name = knownRoom.Name
 		}
+		code = knownRoom.Code
 	}
 
 	return model.Room{
