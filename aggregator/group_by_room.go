@@ -21,10 +21,14 @@ func GroupByRoom(allData model.ParsedData, rows []model.ParsedRow) []GroupedByRo
 
 		group, ok := index[key]
 		if !ok {
+			numSlotsToCreate := uint(1)
+			if activity.Room.Slots > 0 {
+				numSlotsToCreate = activity.Room.Slots
+			}
 			group = &GroupedByRoom{
 				Room:            activity.Room,
 				TotalInAllSlots: 0,
-				Slots:           nil,
+				Slots:           make([]GroupedByRoomSlot, numSlotsToCreate),
 			}
 			index[key] = group
 			grouped = append(grouped, group)
@@ -101,7 +105,25 @@ func GroupByRoom(allData model.ParsedData, rows []model.ParsedRow) []GroupedByRo
 }
 
 func getIndexOfAvailableSlot(act model.ParsedRow, slots []GroupedByRoomSlot) (int, bool) {
+	if len(slots) == 0 {
+		return -1, false
+	}
 
+	// TODO: not just the first slot available but the one available
+	// will less activities
+
+	scoreMap := make(map[int]int)
+
+	for slotIndex, slot := range slots {
+		score := 0
+
+		scoreMap[slotIndex] = score
+	}
+
+	return -1, false
+}
+
+func getIndexOfAvailableSlot_OLD(act model.ParsedRow, slots []GroupedByRoomSlot) (int, bool) {
 	// as preferred method of placement we want a new slot
 	// if we can add a new one.
 	if act.Room.Slots > 0 && len(slots) < int(act.Room.Slots) {

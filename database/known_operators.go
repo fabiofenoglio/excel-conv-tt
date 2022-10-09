@@ -11,14 +11,29 @@ func init() {
 
 	registerKnownOperators(
 		KnownOperator{
-			Code:            "a",
-			Name:            "Op. A",
-			BackgroundColor: "#9b65bf",
+			Code:            "emanuele",
+			Name:            "Emanuele",
+			BackgroundColor: "#A0E77D",
 		},
 		KnownOperator{
-			Code:            "ed1",
-			Name:            "Educatore 1",
-			BackgroundColor: "#9c8341",
+			Code:            "jonida",
+			Name:            "Jo",
+			BackgroundColor: "#EF8677",
+		},
+		KnownOperator{
+			Code:            "marco",
+			Name:            "Marco",
+			BackgroundColor: "#82B6D9",
+		},
+		KnownOperator{
+			Code:            "roberta",
+			Name:            "Roberta",
+			BackgroundColor: "#B5E3E3",
+		},
+		KnownOperator{
+			Code:            "lorenzo",
+			Name:            "Lorenzo",
+			BackgroundColor: "#EFECCC",
 		},
 	)
 }
