@@ -24,12 +24,7 @@ func GroupByRoom(allData model.ParsedData, rows []model.ParsedRow) []GroupedByRo
 			group = &GroupedByRoom{
 				Room:            activity.Room,
 				TotalInAllSlots: 0,
-				Slots: []GroupedByRoomSlot{
-					{
-						SlotIndex: 0,
-						Rows:      nil,
-					},
-				},
+				Slots:           nil,
 			}
 			index[key] = group
 			grouped = append(grouped, group)
@@ -106,6 +101,19 @@ func GroupByRoom(allData model.ParsedData, rows []model.ParsedRow) []GroupedByRo
 }
 
 func getIndexOfAvailableSlot(act model.ParsedRow, slots []GroupedByRoomSlot) (int, bool) {
+
+	// as preferred method of placement we want a new slot
+	// if we can add a new one.
+	if act.Room.Slots > 0 && len(slots) < int(act.Room.Slots) {
+		// we have more available slots before reaching the limit.
+		// first things
+		// return saying that we didn't find a suitable spot and another slot should be added
+		return -1, false
+	}
+
+	// TODO: not just the first slot available but the one available
+	// will less activities
+
 	// first attempt: look for available slot in slots that are there already,
 	// with time clearance before and after to keep the grid as clean as possible.
 	fits := false
