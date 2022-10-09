@@ -31,24 +31,25 @@ func init() {
 		AllowMissingOperator: true,
 		PreferredOrder:       -7,
 	}, KnownRoom{
-		Code:            "planetario",
-		Name:            "Planetario",
-		BackgroundColor: "#F6F7D4",
-		Slots:           5,
-		PreferredOrder:  -6,
+		Code:                     "planetario",
+		Name:                     "Planetario",
+		BackgroundColor:          "#F6F7D4",
+		Slots:                    5,
+		PreferredOrder:           -6,
+		SlotPlacementPreferences: &planetarioSlotPlacementPreferences,
 	}, KnownRoom{
 		Code:            "aula 1",
-		Aliases:         []string{"aula didattica 1"},
+		Aliases:         []string{"aula didattica 1", "lab 1", "laboratorio 1", "laboratorio didattico 1"},
 		Name:            "Aula 1",
 		BackgroundColor: "#C7E8B5",
-		Slots:           2,
+		Slots:           1,
 		PreferredOrder:  -5,
 	}, KnownRoom{
 		Code:            "aula 2",
-		Aliases:         []string{"aula didattica 2"},
+		Aliases:         []string{"aula didattica 2", "lab 2", "laboratorio 2", "laboratorio didattico 2"},
 		Name:            "Aula 2",
 		BackgroundColor: "#C7E8B5",
-		Slots:           2,
+		Slots:           1,
 		PreferredOrder:  -4,
 	})
 }
@@ -81,4 +82,15 @@ func GetKnownRooms() []KnownRoom {
 		out = append(out, v)
 	}
 	return out
+}
+
+func GetEffectiveSlotPlacementPreferencesForRoom(roomCode string) SlotPlacementPreferences {
+	knownRoom, ok := GetKnownRoom(roomCode)
+	if !ok {
+		return DefaultSlotPlacementPreferences
+	}
+	if knownRoom.SlotPlacementPreferences == nil {
+		return DefaultSlotPlacementPreferences
+	}
+	return *knownRoom.SlotPlacementPreferences
 }

@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fabiofenoglio/excelconv/database"
 	"github.com/fabiofenoglio/excelconv/model"
 )
 
@@ -35,7 +36,7 @@ func GroupByRoom(allData model.ParsedData, rows []model.ParsedRow) []GroupedByRo
 		}
 
 		// find which slot to fill
-		fitsAt, fits := getIndexOfAvailableSlot(activity, group.Slots)
+		fitsAt, _, fits := findBestSlotForActivity(activity, group.Slots)
 
 		if fits {
 			group.Slots[fitsAt].Rows = append(group.Slots[fitsAt].Rows, activity)
@@ -104,32 +105,15 @@ func GroupByRoom(allData model.ParsedData, rows []model.ParsedRow) []GroupedByRo
 	return out
 }
 
-func getIndexOfAvailableSlot(act model.ParsedRow, slots []GroupedByRoomSlot) (int, bool) {
+func findBestSlotForActivity(act model.ParsedRow, slots []GroupedByRoomSlot) (index, score int, fits bool) {
 	if len(slots) == 0 {
-		return -1, false
+		return -1, 0, false
 	}
 
 	scoreMap := make(map[int]int)
 	numSlots := len(slots)
 
-	type scoresTable struct {
-		pointsForFittingWithSmallClearance        int
-		pointsForFittingWithLotClearance          int
-		penaltyForActivityImmediatelyToTheRight   int
-		penaltyForActivity2ndToTheRight           int
-		penaltyForActivityImmediatelyToTheLeft    int
-		pointsForOperatorHasOtherActivitiesInSlot int
-		penaltyForEachOtherActivityInSlot         int
-	}
-	scoreSettings := scoresTable{
-		pointsForFittingWithSmallClearance:        50,
-		pointsForFittingWithLotClearance:          10,
-		penaltyForActivityImmediatelyToTheRight:   30,
-		penaltyForActivity2ndToTheRight:           5,
-		penaltyForActivityImmediatelyToTheLeft:    0,
-		pointsForOperatorHasOtherActivitiesInSlot: 30,
-		penaltyForEachOtherActivityInSlot:         5,
-	}
+	scoreSettings := database.GetEffectiveSlotPlacementPreferencesForRoom(act.Room.Code)
 
 	for slotIndex, slot := range slots {
 		if !activityFitsInTime(act, slot.Rows, 0) {
@@ -141,38 +125,43 @@ func getIndexOfAvailableSlot(act model.ParsedRow, slots []GroupedByRoomSlot) (in
 
 		// prefer slots where it fits with some clearance before and after
 		if activityFitsInTime(act, slot.Rows, time.Minute*1) {
-			score += scoreSettings.pointsForFittingWithSmallClearance
+			score += scoreSettings.PointsForFittingWithSmallClearance
 		}
 		if activityFitsInTime(act, slot.Rows, time.Minute*30) {
-			score += scoreSettings.pointsForFittingWithLotClearance
+			score += scoreSettings.PointsForFittingWithLotClearance
 		}
 
 		// prefer slots without activities on the right
 		if slotIndex < numSlots-1 {
 			if !activityFitsInTime(act, slots[slotIndex+1].Rows, 0) {
-				score -= scoreSettings.penaltyForActivityImmediatelyToTheRight
+				score -= scoreSettings.PenaltyForActivityImmediatelyToTheRight
 			}
 		}
 		if slotIndex < numSlots-2 {
 			if !activityFitsInTime(act, slots[slotIndex+2].Rows, 0) {
-				score -= scoreSettings.penaltyForActivity2ndToTheRight
+				score -= scoreSettings.PenaltyForActivity2ndToTheRight
 			}
 		}
 
 		// prefer slots without activities on the left
 		if slotIndex > 0 {
 			if !activityFitsInTime(act, slots[slotIndex-1].Rows, 0) {
-				score -= scoreSettings.penaltyForActivityImmediatelyToTheLeft
+				score -= scoreSettings.PenaltyForActivityImmediatelyToTheLeft
 			}
 		}
 
 		// prefer slots where the same operator was
 		if act.Operator.Code != "" && sameOperatorHasOtherActivitiesInSlot(act.Operator.Code, slot) {
-			score += scoreSettings.pointsForOperatorHasOtherActivitiesInSlot
+			score += scoreSettings.PointsForOperatorHasOtherActivitiesInSlot
+		}
+
+		// prefer slots where the same group was
+		if act.Code != "" && sameGroupHasOtherActivitiesInSlot(act.Code, slot) {
+			score += scoreSettings.PointsForGroupHasOtherActivitiesInSlot
 		}
 
 		// prefer the more empty slots
-		score -= scoreSettings.penaltyForEachOtherActivityInSlot * len(slot.Rows)
+		score -= scoreSettings.PenaltyForEachOtherActivityInSlot * len(slot.Rows)
 
 		// prefer slots on the left when everything else is the same
 		score -= slotIndex
@@ -182,7 +171,7 @@ func getIndexOfAvailableSlot(act model.ParsedRow, slots []GroupedByRoomSlot) (in
 
 	if len(scoreMap) == 0 {
 		// no valid slots
-		return -1, false
+		return -1, 0, false
 	}
 
 	// pick the highest score
@@ -194,12 +183,21 @@ func getIndexOfAvailableSlot(act model.ParsedRow, slots []GroupedByRoomSlot) (in
 		}
 	}
 
-	return highestIndex, true
+	return highestIndex, highestScore, true
 }
 
 func sameOperatorHasOtherActivitiesInSlot(operatorCode string, slot GroupedByRoomSlot) bool {
 	for _, otherAct := range slot.Rows {
 		if otherAct.Operator.Code == operatorCode {
+			return true
+		}
+	}
+	return false
+}
+
+func sameGroupHasOtherActivitiesInSlot(code string, slot GroupedByRoomSlot) bool {
+	for _, otherAct := range slot.Rows {
+		if otherAct.Code == code {
 			return true
 		}
 	}

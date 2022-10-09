@@ -21,7 +21,7 @@ func init() {
 		KnownOperator{
 			Code:            "jonida",
 			Name:            "Jo",
-			BackgroundColor: "#FBE6CB",
+			BackgroundColor: "#FDD1C0",
 			Aliases:         []string{"jo", "jonida halo", "jay", "halo"},
 		},
 		KnownOperator{
@@ -41,6 +41,24 @@ func init() {
 			Name:            "Lorenzo",
 			BackgroundColor: "#E7C656",
 			Aliases:         []string{"lorenzo colombo", "colombo"},
+		},
+		KnownOperator{
+			Code:            "eleonora",
+			Name:            "Eleonora",
+			BackgroundColor: "#B9342A",
+			Aliases:         []string{"ele"},
+		},
+		KnownOperator{
+			Code:            "simona romaniello",
+			Name:            "Simona Ro.",
+			BackgroundColor: "#B2B2B2",
+			Aliases:         []string{"ro", "simo ro", "romaniello"},
+		},
+		KnownOperator{
+			Code:            "simona rachetto",
+			Name:            "Simona Ra.",
+			BackgroundColor: "#964B7C",
+			Aliases:         []string{"ra", "simo ra", "rachetto"},
 		},
 	)
 }
