@@ -28,7 +28,13 @@ func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
 		}
 	}()
 
-	startingHeaderCell := excel.NewCell("Organizzazione", 1, 4)
+	sheetName := f.GetSheetName(0)
+	if sheetName == "" {
+		sheetName = "Organizzazione"
+		log.Warnf("reverting to default source sheet name '%s'", sheetName)
+	}
+
+	startingHeaderCell := excel.NewCell(sheetName, 1, 4)
 
 	columnNameToFieldNameMap := make(map[string]string)
 	sampleRow := &ExcelRow{}
