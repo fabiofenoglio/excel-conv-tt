@@ -41,11 +41,11 @@ func toColumnName(columnNumber uint) string {
 		// If remainder is 0, then a
 		// 'Z' must be there in output
 		if rem == 0 {
-			columnName += "Z"
+			columnName += "z"
 			columnNumber = (columnNumber / 26) - 1
 		} else // If remainder is non-zero
 		{
-			columnName += string((rem - 1) + uint('A'))
+			columnName += string((rem - 1) + uint('a'))
 			columnNumber = columnNumber / 26
 		}
 	}
