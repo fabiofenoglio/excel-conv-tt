@@ -278,7 +278,7 @@ func buildForOperator(color string) *Style {
 				},
 				Fill: excelize.Fill{
 					Type:    "pattern",
-					Color:   []string{color},
+					Color:   []string{"#FFFFFF"},
 					Pattern: 1,
 				},
 				Border: []excelize.Border{
