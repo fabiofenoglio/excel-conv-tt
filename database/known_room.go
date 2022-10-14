@@ -11,4 +11,5 @@ type KnownRoom struct {
 	SlotPlacementPreferences *SlotPlacementPreferences
 	Aliases                  []string
 	ShowActivityNames        bool
+	Hide                     bool
 }

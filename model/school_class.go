@@ -21,3 +21,25 @@ func (s SchoolClass) FullDescription() string {
 func (s SchoolClass) String() string {
 	return s.FullDescription()
 }
+
+func (s SchoolClass) Hash() string {
+	out := ""
+	if s.Number != "" {
+		out += strings.ToLower(strings.TrimSpace(s.Number)) + "/"
+	}
+	if s.Section != "" {
+		out += strings.ToLower(strings.TrimSpace(s.Section))
+	}
+	return out
+}
+
+func (s SchoolClass) SortableIdentifier() string {
+	out := ""
+	if s.Number != "" {
+		out += strings.ToLower(strings.TrimSpace(s.Number)) + "/"
+	}
+	if s.Section != "" {
+		out += strings.ToLower(strings.TrimSpace(s.Section))
+	}
+	return out
+}

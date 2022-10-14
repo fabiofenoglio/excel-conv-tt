@@ -36,5 +36,6 @@ func roomFromName(name string) model.Room {
 		Slots:                knownRoom.Slots,
 		PreferredOrder:       knownRoom.PreferredOrder,
 		ShowActivityNames:    knownRoom.ShowActivityNames,
+		Hide:                 knownRoom.Hide,
 	}
 }

@@ -14,13 +14,13 @@ func writeSchoolsForDay(c WriteContext, groups []byactivity.ActivityGroup, start
 	for _, schoolGroup := range groups {
 		cursor.MoveColumn(startCell.Column())
 
-		toWrite := fmt.Sprintf("%s", schoolGroup.Code)
+		toWrite := fmt.Sprintf("%s", schoolGroup.SequentialCode())
 		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
 			return err
 		}
 		cursor.MoveRight(1)
 
-		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(10).Code()); err != nil {
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(8).Code()); err != nil {
 			return err
 		}
 
@@ -29,7 +29,7 @@ func writeSchoolsForDay(c WriteContext, groups []byactivity.ActivityGroup, start
 			return err
 		}
 
-		cursor.MoveRight(11)
+		cursor.MoveRight(9)
 
 		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
 			return err
@@ -41,7 +41,7 @@ func writeSchoolsForDay(c WriteContext, groups []byactivity.ActivityGroup, start
 
 		cursor.MoveRight(3)
 
-		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(4).Code()); err != nil {
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
 			return err
 		}
 
@@ -61,6 +61,21 @@ func writeSchoolsForDay(c WriteContext, groups []byactivity.ActivityGroup, start
 		}
 
 		if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), 25); err != nil {
+			return err
+		}
+
+		cursor.MoveRight(3)
+
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(5).Code()); err != nil {
+			return err
+		}
+
+		toWrite = schoolGroup.Notes
+		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
+			return err
+		}
+		if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(),
+			c.styleRegister.SchoolRecapStyle().Common.StyleID); err != nil {
 			return err
 		}
 

@@ -40,6 +40,17 @@ var (
 		},
 	}
 
+	schoolRecapStyle = &Style{
+		Common: &StyleDefinition{
+			Style: &excelize.Style{
+				Alignment: &excelize.Alignment{
+					Vertical: "center",
+					WrapText: true,
+				},
+			},
+		},
+	}
+
 	dayHeaderStyle = &Style{
 		Common: &StyleDefinition{
 			Style: &excelize.Style{
@@ -251,14 +262,14 @@ func buildForRoom(color string) *Style {
 				},
 				Fill: excelize.Fill{
 					Type:    "pattern",
-					Color:   []string{color},
+					Color:   []string{"#FFFFFF"},
 					Pattern: 1,
 				},
 				Border: []excelize.Border{
-					{Type: "left", Color: color, Style: 2},
-					{Type: "right", Color: color, Style: 2},
-					{Type: "top", Color: color, Style: 1},
-					{Type: "bottom", Color: color, Style: 1},
+					{Type: "left", Color: "333333", Style: 2},
+					{Type: "right", Color: "333333", Style: 2},
+					{Type: "top", Color: "333333", Style: 1},
+					{Type: "bottom", Color: "333333", Style: 1},
 				},
 			},
 		},
@@ -278,7 +289,7 @@ func buildForOperator(color string) *Style {
 				},
 				Fill: excelize.Fill{
 					Type:    "pattern",
-					Color:   []string{"#FFFFFF"},
+					Color:   []string{color},
 					Pattern: 1,
 				},
 				Border: []excelize.Border{

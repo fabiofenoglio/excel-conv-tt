@@ -13,6 +13,8 @@ func GetDifferentActivityGroups(rows []model.ParsedRow) []ActivityGroup {
 	index := make(map[string]*ActivityGroup)
 	grouped := make([]*ActivityGroup, 0)
 
+	notesIndex := make(map[string]bool)
+
 	for _, row := range rows {
 		if row.Code == "" && row.School.FullDescription() == "" && row.SchoolClass.FullDescription() == "" {
 			continue
@@ -35,6 +37,28 @@ func GetDifferentActivityGroups(rows []model.ParsedRow) []ActivityGroup {
 			index[key] = group
 			grouped = append(grouped, group)
 		}
+
+		if row.BookingNotes != "" {
+			codeForNote := row.Code + "/bk/" + strings.ToUpper(strings.TrimSpace(row.BookingNotes))
+			if _, alreadyAdded := notesIndex[codeForNote]; !alreadyAdded {
+				notesIndex[codeForNote] = true
+				if group.Notes != "" {
+					group.Notes += "\n"
+				}
+				group.Notes += row.BookingNotes
+			}
+		}
+
+		if row.OperatorNotes != "" {
+			codeForNote := row.Code + "/op/" + strings.ToUpper(strings.TrimSpace(row.OperatorNotes))
+			if _, alreadyAdded := notesIndex[codeForNote]; !alreadyAdded {
+				notesIndex[codeForNote] = true
+				if group.Notes != "" {
+					group.Notes += "\n"
+				}
+				group.Notes += row.OperatorNotes
+			}
+		}
 	}
 
 	sort.SliceStable(grouped, func(i, j int) bool {
@@ -42,11 +66,11 @@ func GetDifferentActivityGroups(rows []model.ParsedRow) []ActivityGroup {
 		if c != 0 {
 			return c < 0
 		}
-		c = strings.Compare(strings.ToLower(grouped[i].School.Name), strings.ToLower(grouped[j].School.Name))
+		c = strings.Compare(strings.ToLower(grouped[i].School.SortableIdentifier()), strings.ToLower(grouped[j].School.SortableIdentifier()))
 		if c != 0 {
 			return c < 0
 		}
-		c = strings.Compare(strings.ToLower(grouped[i].SchoolClass.FullDescription()), strings.ToLower(grouped[j].SchoolClass.FullDescription()))
+		c = strings.Compare(strings.ToLower(grouped[i].SchoolClass.SortableIdentifier()), strings.ToLower(grouped[j].SchoolClass.SortableIdentifier()))
 		if c != 0 {
 			return c < 0
 		}
@@ -78,9 +102,39 @@ func GetDifferentActivityGroups(rows []model.ParsedRow) []ActivityGroup {
 	}
 
 	// compute sequential number
+	indexForNumberingSchools := make(map[string]uint)
+	indexForNumberingClasses := make(map[string]uint)
+	counterForSchool := uint(1)
+	countersForClassInsideSchool := make(map[string]uint)
+
 	out := make([]ActivityGroup, 0, len(grouped))
 	for i, e := range grouped {
+		// check if this school has a number already
+		k := e.School.Hash()
+		numForSchool, ok := indexForNumberingSchools[k]
+		if !ok {
+			numForSchool = counterForSchool
+			counterForSchool++
+			indexForNumberingSchools[k] = numForSchool
+		}
+
+		// check if this school group has a number already
+		k = e.SchoolClass.Hash()
+		numForGroupInsideSchool, ok := indexForNumberingClasses[k]
+		if !ok {
+			var countingAlready bool
+			numForGroupInsideSchool, countingAlready = countersForClassInsideSchool[e.School.Hash()]
+			if !countingAlready {
+				numForGroupInsideSchool = 1
+			}
+			countersForClassInsideSchool[e.School.Hash()] = numForGroupInsideSchool + 1
+			indexForNumberingClasses[k] = numForGroupInsideSchool
+		}
+
+		e.SequentialNumberInsideSchool = numForGroupInsideSchool
+		e.SequentialNumberForSchool = numForSchool
 		e.SequentialNumber = uint(i + 1)
+
 		out = append(out, *e)
 	}
 

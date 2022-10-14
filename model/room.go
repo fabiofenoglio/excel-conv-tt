@@ -10,6 +10,7 @@ type Room struct {
 	Slots                uint   `json:"slots,omitempty"`
 	PreferredOrder       int    `json:"-"`
 	ShowActivityNames    bool   `json:"-"`
+	Hide                 bool   `json:"-"`
 }
 
 var (

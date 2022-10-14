@@ -17,6 +17,7 @@ func init() {
 		BackgroundColor: "#D9E9FA",
 		Slots:           5,
 		PreferredOrder:  -9,
+		Hide:            true,
 	}, KnownRoom{
 		Code:            "museo",
 		Name:            "Museo",

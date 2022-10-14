@@ -2,6 +2,7 @@ package byday
 
 import (
 	"sort"
+	"strings"
 
 	"github.com/fabiofenoglio/excelconv/model"
 )
@@ -41,7 +42,13 @@ func GroupByStartDay(rows []model.ParsedRow) []GroupedByDay {
 			if group.Rows[i].StartAt.UnixMilli() > group.Rows[j].StartAt.UnixMilli() {
 				return false
 			}
-			return group.Rows[i].EndAt.UnixMilli() < group.Rows[j].EndAt.UnixMilli()
+			if group.Rows[i].EndAt.UnixMilli() < group.Rows[j].EndAt.UnixMilli() {
+				return true
+			}
+			if group.Rows[i].EndAt.UnixMilli() > group.Rows[j].EndAt.UnixMilli() {
+				return false
+			}
+			return strings.Compare(group.Rows[i].Code, group.Rows[j].Code) < 0
 		})
 	}
 

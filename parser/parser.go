@@ -40,6 +40,11 @@ func Parse(input string, args config.Args, log *logrus.Logger) (model.ParsedData
 			return zero, fmt.Errorf(errMsg+": %w", err)
 		}
 
+		filterResult := filter(row)
+		if !filterResult {
+			continue
+		}
+
 		parsed, err := parseRow(row, args)
 		if err != nil {
 			errMsg := fmt.Sprintf("error parsing row %d", i)

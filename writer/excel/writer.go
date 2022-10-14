@@ -3,6 +3,7 @@ package excel
 import (
 	"fmt"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/sirupsen/logrus"
@@ -152,6 +153,18 @@ func writeDayWithDetails(c WriteContext, groupByDay byday.GroupedByDay, startCel
 	// WRITE SCHOOL/GROUPS FOR THE DAY
 	schoolGroupsForThisDay := byactivity.GetDifferentActivityGroups(groupByDay.Rows)
 	if len(schoolGroupsForThisDay) > 0 {
+		sort.SliceStable(schoolGroupsForThisDay, func(i, j int) bool {
+			diff := schoolGroupsForThisDay[i].SequentialNumberForSchool - schoolGroupsForThisDay[j].SequentialNumberForSchool
+			if diff != 0 {
+				return diff < 0
+			}
+			diff = schoolGroupsForThisDay[i].SequentialNumberInsideSchool - schoolGroupsForThisDay[j].SequentialNumberInsideSchool
+			if diff != 0 {
+				return diff < 0
+			}
+			r := strings.Compare(strings.ToLower(schoolGroupsForThisDay[i].Code), strings.ToLower(schoolGroupsForThisDay[j].Code))
+			return r < 0
+		})
 		err := writeSchoolsForDay(c, schoolGroupsForThisDay, tracker)
 		if err != nil {
 			return zero, fmt.Errorf("error writing schools for day: %w", err)

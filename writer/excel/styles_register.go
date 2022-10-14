@@ -107,6 +107,10 @@ func (r *StyleRegister) NoOperatorStyle() *Style {
 	return r.registerIfNeeded(noOperatorStyle)
 }
 
+func (r *StyleRegister) SchoolRecapStyle() *Style {
+	return r.registerIfNeeded(schoolRecapStyle)
+}
+
 func (r *StyleRegister) OperatorStyle(color string) *Style {
 	key := "op/" + strings.ToLower(color)
 	if v, ok := r.registeredStyles[key]; ok {

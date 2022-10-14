@@ -17,7 +17,7 @@ import (
 func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, log *logrus.Logger) (DayGridWriteResult, error) {
 	minGroupWidth := uint(12)
 	minGroupWidthPerSlot := uint(5)
-	minDayWidthInCells := uint(20)
+	minDayWidthInCells := uint(23)
 	boxCellHeight := float64(20)
 	moreSlotsAtBottom := 0 // add if you want to show some empty time rows after the last one
 
@@ -41,6 +41,9 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 
 	// write the header with the columns / rooms
 	for _, group := range groupedByRoom {
+		if group.Room.Hide {
+			continue
+		}
 		log.Debugf("writing header for room group %s", group.Room.Code)
 
 		numActs := uint(len(group.Slots))
@@ -202,6 +205,9 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 
 	// draw the box for each room
 	for _, group := range groupedByRoom {
+		if group.Room.Hide {
+			continue
+		}
 		log.Debugf("drawing boxes for room %s", group.Room.Code)
 
 		if _, ok := roomWidths[group.Room.Code]; !ok {
@@ -254,6 +260,9 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 	rowPlacementMap := make(map[int]excel.CellBox)
 
 	for _, group := range groupedByRoom {
+		if group.Room.Hide {
+			continue
+		}
 		log.Debugf("placing activities for room %s", group.Room.Code)
 
 		for slotIndex, slot := range group.Slots {
@@ -304,14 +313,15 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 				for r := actStartCell.Row(); r <= actEndCell.Row(); r++ {
 					c := actStartCell.AtRow(r)
 
+					// writeInCell := operator.Name
+					writeInCell := act.Code
+					if decoded, ok := schoolGroupsIndex[act.Code]; ok {
+						writeInCell = fmt.Sprintf("%s", decoded.SequentialCode())
+					}
 					/*
-						// writeInCell := operator.Name
-						writeInCell := act.Raw.Codice
-						if decoded, ok := schoolGroupsIndex[act.Raw.Codice]; ok && decoded.NumeroSeq > 0 {
-							writeInCell = fmt.Sprintf("%d", decoded.NumeroSeq)
-						}
+						writeInCell := shortenGroupCode(act.Code)
 					*/
-					writeInCell := shortenGroupCode(act.Code)
+
 					if writeInCell == "" && operator.Code != "" {
 						writeInCell = operator.Name
 					}
@@ -379,32 +389,34 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 		}
 	}
 
-	cursor = startCell.AtRight(actualWidth - 8).AtRow(1)
-	if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
-		return zero, err
-	}
-	if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), "MAT:"); err != nil {
-		return zero, err
-	}
-	if err := f.MergeCell(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).AtRight(2).Code()); err != nil {
-		return zero, err
-	}
-	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), fmt.Sprintf("%d", numGroupsMat)); err != nil {
-		return zero, err
-	}
+	if false { // this annotation was dropped. keeping the code in case it's needed again
+		cursor = startCell.AtRight(actualWidth - 8).AtRow(1)
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
+			return zero, err
+		}
+		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), "MAT:"); err != nil {
+			return zero, err
+		}
+		if err := f.MergeCell(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).AtRight(2).Code()); err != nil {
+			return zero, err
+		}
+		if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), fmt.Sprintf("%d", numGroupsMat)); err != nil {
+			return zero, err
+		}
 
-	cursor = cursor.AtRight(4)
-	if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
-		return zero, err
-	}
-	if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), "POM:"); err != nil {
-		return zero, err
-	}
-	if err := f.MergeCell(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).AtRight(2).Code()); err != nil {
-		return zero, err
-	}
-	if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), fmt.Sprintf("%d", numGroupsPom)); err != nil {
-		return zero, err
+		cursor = cursor.AtRight(4)
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
+			return zero, err
+		}
+		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), "POM:"); err != nil {
+			return zero, err
+		}
+		if err := f.MergeCell(cursor.SheetName(), cursor.AtBottom(1).Code(), cursor.AtBottom(1).AtRight(2).Code()); err != nil {
+			return zero, err
+		}
+		if err := f.SetCellValue(cursor.SheetName(), cursor.AtBottom(1).Code(), fmt.Sprintf("%d", numGroupsPom)); err != nil {
+			return zero, err
+		}
 	}
 
 	return DayGridWriteResult{
