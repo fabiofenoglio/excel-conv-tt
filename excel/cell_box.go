@@ -13,6 +13,9 @@ type CellBox interface {
 	LeftColumn() uint
 	RightColumn() uint
 
+	NumCellsInArea() uint
+
+	Code() string
 	String() string
 }
 
@@ -72,4 +75,12 @@ func (c *CellBoxImpl) RightColumn() uint {
 
 func (c *CellBoxImpl) String() string {
 	return fmt.Sprintf("[%v - %v]", c.TopLeft().String(), c.BottomRight().String())
+}
+
+func (c *CellBoxImpl) Code() string {
+	return fmt.Sprintf("[%v-%v]", c.TopLeft().Code(), c.BottomRight().Code())
+}
+
+func (c *CellBoxImpl) NumCellsInArea() uint {
+	return (c.RightColumn() - c.LeftColumn() + 1) * (c.BottomRow() - c.TopRow() + 1)
 }

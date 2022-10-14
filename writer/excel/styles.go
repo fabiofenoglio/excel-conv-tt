@@ -66,6 +66,57 @@ var (
 		},
 	}
 
+	inBoxAnnotationOnLeft = &Style{
+		Common: &StyleDefinition{
+			Style: &excelize.Style{
+				Font: &excelize.Font{
+					Size:  11,
+					Color: "#333333",
+				},
+				Alignment: &excelize.Alignment{
+					Horizontal: "left",
+					Vertical:   "center",
+				},
+				Fill: excelize.Fill{
+					Type:    "pattern",
+					Color:   []string{"#FFFFFF"},
+					Pattern: 1,
+				},
+				Border: []excelize.Border{
+					{Type: "left", Color: "#333333", Style: 1},
+					{Type: "right", Color: "#333333", Style: 1},
+					{Type: "top", Color: "#333333", Style: 1},
+					{Type: "bottom", Color: "#333333", Style: 1},
+				},
+			},
+		},
+	}
+	inBoxAnnotationOnRight = &Style{
+		Common: &StyleDefinition{
+			Style: &excelize.Style{
+				Font: &excelize.Font{
+					Size:  11,
+					Color: "#333333",
+				},
+				Alignment: &excelize.Alignment{
+					Horizontal: "right",
+					Vertical:   "center",
+				},
+				Fill: excelize.Fill{
+					Type:    "pattern",
+					Color:   []string{"#FFFFFF"},
+					Pattern: 1,
+				},
+				Border: []excelize.Border{
+					{Type: "left", Color: "#333333", Style: 1},
+					{Type: "right", Color: "#333333", Style: 1},
+					{Type: "top", Color: "#333333", Style: 1},
+					{Type: "bottom", Color: "#333333", Style: 1},
+				},
+			},
+		},
+	}
+
 	noRoomStyle = &Style{
 		Common: &StyleDefinition{
 			Style: &excelize.Style{

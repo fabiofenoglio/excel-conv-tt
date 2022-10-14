@@ -10,4 +10,5 @@ type KnownRoom struct {
 	BackgroundColor          string
 	SlotPlacementPreferences *SlotPlacementPreferences
 	Aliases                  []string
+	ShowActivityNames        bool
 }

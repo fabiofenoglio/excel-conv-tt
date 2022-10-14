@@ -5,6 +5,8 @@ import (
 )
 
 type ParsedRow struct {
+	ID int
+
 	Code string `json:"code"`
 
 	StartAt  time.Time     `json:"start_at"`

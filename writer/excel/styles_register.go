@@ -28,6 +28,13 @@ func (s *Style) WarningIDOrDefault() int {
 	return s.Common.StyleID
 }
 
+func (s *Style) MatchesID(id int) bool {
+	if s.WarningVariant != nil && s.WarningVariant.StyleID == id {
+		return true
+	}
+	return s.Common.StyleID == id
+}
+
 func NewStyleRegister(f *excelize.File) *StyleRegister {
 	return &StyleRegister{
 		f:                f,
@@ -74,6 +81,14 @@ func (r *StyleRegister) DayRoomBoxStyle() *Style {
 
 func (r *StyleRegister) DayHeaderStyle() *Style {
 	return r.registerIfNeeded(dayHeaderStyle)
+}
+
+func (r *StyleRegister) InBoxAnnotationOnLeftStyle() *Style {
+	return r.registerIfNeeded(inBoxAnnotationOnLeft)
+}
+
+func (r *StyleRegister) InBoxAnnotationOnRightStyle() *Style {
+	return r.registerIfNeeded(inBoxAnnotationOnRight)
 }
 
 func (r *StyleRegister) ToBeFilledStyle() *Style {

@@ -172,6 +172,7 @@ func parseRow(r ExcelRow, args config.Args) (model.ParsedRow, error) {
 	}
 
 	r2 := model.ParsedRow{
+		ID:       database.NextSequenceValue(),
 		Code:     r.Codice,
 		StartAt:  start,
 		EndAt:    end,

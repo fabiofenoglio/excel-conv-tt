@@ -35,5 +35,6 @@ func roomFromName(name string) model.Room {
 		BackgroundColor:      backgroundColor,
 		Slots:                knownRoom.Slots,
 		PreferredOrder:       knownRoom.PreferredOrder,
+		ShowActivityNames:    knownRoom.ShowActivityNames,
 	}
 }

@@ -9,6 +9,7 @@ type Room struct {
 	BackgroundColor      string `json:"-"`
 	Slots                uint   `json:"slots,omitempty"`
 	PreferredOrder       int    `json:"-"`
+	ShowActivityNames    bool   `json:"-"`
 }
 
 var (
