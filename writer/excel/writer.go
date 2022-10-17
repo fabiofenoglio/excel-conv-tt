@@ -111,12 +111,14 @@ func (w *WriterImpl) Write(parsed model.ParsedData, args config.Args, log *logru
 			MoveColumn(daysGridCursor.CoveredArea().RightColumn() + 1)
 	}
 
-	daysGridCursor.MoveAtRightTopOfCoveredArea()
-	{
-		// write operator colours
-		err := writeOperatorsLegenda(wc, daysGridCursor, parsed.Operators)
-		if err != nil {
-			return nil, fmt.Errorf("error writing operator colors: %w", err)
+	if false { // do not write operators legenda
+		daysGridCursor.MoveAtRightTopOfCoveredArea()
+		{
+			// write operator colours
+			err := writeOperatorsLegenda(wc, daysGridCursor, parsed.Operators)
+			if err != nil {
+				return nil, fmt.Errorf("error writing operator colors: %w", err)
+			}
 		}
 	}
 
@@ -165,11 +167,13 @@ func writeDayWithDetails(c WriteContext, groupByDay byday.GroupedByDay, startCel
 			r := strings.Compare(strings.ToLower(schoolGroupsForThisDay[i].Code), strings.ToLower(schoolGroupsForThisDay[j].Code))
 			return r < 0
 		})
+
 		err := writeSchoolsForDay(c, schoolGroupsForThisDay, tracker)
 		if err != nil {
 			return zero, fmt.Errorf("error writing schools for day: %w", err)
 		}
 	}
+
 	tracker.MoveAtBottomLeftOfCoveredArea()
 
 	// WRITE PLACEHOLDERS FOR ORDER OF THE DAY

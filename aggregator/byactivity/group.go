@@ -24,12 +24,10 @@ type ActivityGroup struct {
 
 func (g *ActivityGroup) SequentialCode() string {
 	return fmt.Sprintf("%d-%s", g.SequentialNumberForSchool,
-		toColumnName(g.SequentialNumberInsideSchool))
+		numToChars(g.SequentialNumberInsideSchool))
 }
 
-// Function to print Excel column
-// name for a given column number
-func toColumnName(columnNumber uint) string {
+func numToChars(columnNumber uint) string {
 
 	// To store result (Excel column name)
 	var columnName = ""
