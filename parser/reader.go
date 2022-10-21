@@ -7,10 +7,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/sirupsen/logrus"
-	"github.com/xuri/excelize/v2"
-
 	"github.com/fabiofenoglio/excelconv/excel"
+	"github.com/sirupsen/logrus"
 )
 
 func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
@@ -61,7 +59,7 @@ func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
 			break
 		}
 		headers = append(headers, cell)
-		if len(headers) > 50 {
+		if len(headers) > 5000 {
 			return nil, errors.New("too many headers found")
 		}
 
