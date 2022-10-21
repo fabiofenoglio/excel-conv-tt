@@ -6,7 +6,7 @@ import (
 )
 
 var (
-	containsNAttivitaRegex = regexp.MustCompile(`(?i)\s*[n0-9]+\s+attivit[aà]\'?\s*`)
+	containsNAttivitaRegex = regexp.MustCompile(`(?i)\s*[n0-9]+\s*[°um]*\s*attivit[aà]\'?\s*`)
 )
 
 func filter(r ExcelRow) bool {

@@ -28,7 +28,7 @@ func init() {
 			Code:            "marco",
 			Name:            "Marco",
 			BackgroundColor: "#2B66B3",
-			Aliases:         []string{"marco brusaferro", "brusaferro", "brusa"},
+			Aliases:         []string{"marco brusaferro", "brusaferro", "brusa", "brusa marco"},
 		},
 		KnownOperator{
 			Code:            "roberta",

@@ -41,7 +41,7 @@ func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
 	val := reflect.ValueOf(sampleRow).Elem()
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Type().Field(i)
-		columnName := field.Tag.Get("column")
+		columnName := strings.ToLower(strings.TrimSpace(field.Tag.Get("column")))
 		if columnName != "" {
 			columnNameToFieldNameMap[columnName] = field.Name
 		}
@@ -49,7 +49,6 @@ func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
 
 	currentHeaderCell := startingHeaderCell
 	headers := make([]string, 0, 10)
-	columnNumberToFieldNameMap := make(map[uint]string)
 	fieldNameToColumnNumberMap := make(map[string]uint)
 
 	for {
@@ -57,19 +56,26 @@ func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error reading header cell %s: %w", currentHeaderCell.Code(), err)
 		}
-		if cell == "" {
+		cellCode := strings.ToLower(strings.TrimSpace(cell))
+		if cellCode == "" {
 			break
 		}
+
 		headers = append(headers, cell)
 		if len(headers) > 5000 {
 			return nil, errors.New("too many headers found")
 		}
 
-		if mapsToFieldName, ok := columnNameToFieldNameMap[strings.TrimSpace(cell)]; ok {
-			log.Debugf("column %s with header '%s' maps to known field '%s'", currentHeaderCell.ColumnName(), cell, mapsToFieldName)
+		if mapsToFieldName, ok := columnNameToFieldNameMap[cellCode]; ok {
 
-			columnNumberToFieldNameMap[currentHeaderCell.Column()] = mapsToFieldName
-			fieldNameToColumnNumberMap[mapsToFieldName] = currentHeaderCell.Column()
+			if _, isDuplicated := fieldNameToColumnNumberMap[mapsToFieldName]; isDuplicated {
+				log.Warnf("multiple mapping columns for field '%s'", mapsToFieldName)
+
+			} else {
+				log.Debugf("column %s with header '%s' maps to known field '%s'", currentHeaderCell.ColumnName(), cell, mapsToFieldName)
+				fieldNameToColumnNumberMap[mapsToFieldName] = currentHeaderCell.Column()
+			}
+
 		} else {
 			log.Warnf("column %s with header '%s' does not map to any known field", currentHeaderCell.ColumnName(), cell)
 		}
