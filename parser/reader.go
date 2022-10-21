@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/xuri/excelize/v2"
+
 	"github.com/fabiofenoglio/excelconv/excel"
 	"github.com/sirupsen/logrus"
 )
