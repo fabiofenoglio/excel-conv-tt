@@ -7,9 +7,9 @@ type KnownRoom struct {
 	AllowMissingOperator bool
 	PreferredOrder       int
 
-	BackgroundColor          string
-	SlotPlacementPreferences *SlotPlacementPreferences
-	Aliases                  []string
-	ShowActivityNames        bool
-	Hide                     bool
+	BackgroundColor                string
+	SlotPlacementPreferences       *SlotPlacementPreferences
+	Aliases                        []string
+	ShowActivityNamesAsAnnotations bool
+	Hide                           bool
 }

@@ -28,14 +28,14 @@ func roomFromName(name string) model.Room {
 	}
 
 	return model.Room{
-		Code:                 code,
-		Name:                 name,
-		Known:                isKnown,
-		AllowMissingOperator: knownRoom.AllowMissingOperator,
-		BackgroundColor:      backgroundColor,
-		Slots:                knownRoom.Slots,
-		PreferredOrder:       knownRoom.PreferredOrder,
-		ShowActivityNames:    knownRoom.ShowActivityNames,
-		Hide:                 knownRoom.Hide,
+		Code:                           code,
+		Name:                           name,
+		Known:                          isKnown,
+		AllowMissingOperator:           knownRoom.AllowMissingOperator,
+		BackgroundColor:                backgroundColor,
+		Slots:                          knownRoom.Slots,
+		PreferredOrder:                 knownRoom.PreferredOrder,
+		ShowActivityNamesAsAnnotations: knownRoom.ShowActivityNamesAsAnnotations,
+		Hide:                           knownRoom.Hide,
 	}
 }

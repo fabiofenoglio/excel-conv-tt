@@ -1,8 +1,6 @@
-package excel
+package byactivity
 
-// Function to print Excel column
-// name for a given column number
-func toColumnName(columnNumber uint) string {
+func numToChars(columnNumber uint) string {
 
 	// To store result (Excel column name)
 	var columnName = ""
@@ -14,11 +12,11 @@ func toColumnName(columnNumber uint) string {
 		// If remainder is 0, then a
 		// 'Z' must be there in output
 		if rem == 0 {
-			columnName += "Z"
+			columnName += "z"
 			columnNumber = (columnNumber / 26) - 1
 		} else // If remainder is non-zero
 		{
-			columnName += string(rune((rem - 1) + uint('A'))) //nolint:govet
+			columnName += string(rune((rem - 1) + uint('a'))) //nolint:govet
 			columnNumber = columnNumber / 26
 		}
 	}

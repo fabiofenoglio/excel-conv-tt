@@ -29,7 +29,7 @@ func writeAnnotationsOnActivities(c WriteContext, groupByDay byday.GroupedByDay,
 			continue
 		}
 
-		if !act.Room.ShowActivityNames || act.Activity.Description == "" {
+		if !act.Room.ShowActivityNamesAsAnnotations || act.Activity.Description == "" {
 			continue
 		}
 

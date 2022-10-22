@@ -5,10 +5,18 @@ run:
 lint:
 	golangci-lint run
 test:
-	echo "no tests available"
-build-release:
+	go test ./...
+clean:
+	go mod tidy
+	go fmt $(go list ./... | grep -v /vendor/)
+check:
+	make build
+	make clean
 	make lint
+	make test
+build-release:
+	make check
 	goreleaser release --snapshot --rm-dist
 push-release:
-	make lint
+	make check
 	goreleaser release --rm-dist
