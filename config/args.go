@@ -1,6 +1,7 @@
 package config
 
 type Args struct {
+	//nolint:staticcheck
 	Format string `short:"f" long:"format" description:"The desired output format" choice:"excel" choice:"json" default:"excel"`
 
 	Verbose bool `short:"v" long:"verbose" description:"Show verbose debug information"`

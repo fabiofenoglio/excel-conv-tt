@@ -45,7 +45,7 @@ func writeAnnotationsOnActivities(c WriteContext, groupByDay byday.GroupedByDay,
 			return fmt.Errorf("error looking up spaces to write annotations: %w", err)
 		}
 
-		if len(foundSpaces) < 0 {
+		if len(foundSpaces) == 0 {
 			// TODO do something else,
 			// like for instance adding to the cell text and increasing the column width
 			continue
@@ -97,7 +97,7 @@ func writeAnnotationsOnActivities(c WriteContext, groupByDay byday.GroupedByDay,
 				if otherAct.Operator.Code != from.Operator.Code {
 					continue
 				}
-				if strings.ToLower(otherAct.Activity.Description) != strings.ToLower(from.Activity.Description) {
+				if !strings.EqualFold(otherAct.Activity.Description, from.Activity.Description) {
 					continue
 				}
 				otherActivityBox, ok := rowPlacementMap[otherAct.ID]

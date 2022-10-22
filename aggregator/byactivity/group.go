@@ -43,7 +43,7 @@ func numToChars(columnNumber uint) string {
 			columnNumber = (columnNumber / 26) - 1
 		} else // If remainder is non-zero
 		{
-			columnName += string((rem - 1) + uint('a'))
+			columnName += string((rem - 1) + uint('a')) //nolint:govet
 			columnNumber = columnNumber / 26
 		}
 	}

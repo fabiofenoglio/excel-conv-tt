@@ -156,11 +156,11 @@ func writeDayWithDetails(c WriteContext, groupByDay byday.GroupedByDay, startCel
 	schoolGroupsForThisDay := byactivity.GetDifferentActivityGroups(groupByDay.Rows)
 	if len(schoolGroupsForThisDay) > 0 {
 		sort.SliceStable(schoolGroupsForThisDay, func(i, j int) bool {
-			diff := schoolGroupsForThisDay[i].SequentialNumberForSchool - schoolGroupsForThisDay[j].SequentialNumberForSchool
+			diff := int(schoolGroupsForThisDay[i].SequentialNumberForSchool) - int(schoolGroupsForThisDay[j].SequentialNumberForSchool)
 			if diff != 0 {
 				return diff < 0
 			}
-			diff = schoolGroupsForThisDay[i].SequentialNumberInsideSchool - schoolGroupsForThisDay[j].SequentialNumberInsideSchool
+			diff = int(schoolGroupsForThisDay[i].SequentialNumberInsideSchool) - int(schoolGroupsForThisDay[j].SequentialNumberInsideSchool)
 			if diff != 0 {
 				return diff < 0
 			}

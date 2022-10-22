@@ -23,7 +23,7 @@ func writePlaceholdersForDay(c WriteContext, startCell excel.Cell) error {
 		"Orari navetta dalle - alle",
 	}
 
-	cursor = startCell.AtBottom(1)
+	cursor = cursor.AtBottom(1)
 
 	for _, rowToWrite := range rowsToWrite {
 		valueCursors := cursor.AtRight(10)

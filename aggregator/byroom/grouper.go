@@ -222,9 +222,7 @@ func sortActivitiesByStartTime(rows []model.ParsedRow) []model.ParsedRow {
 
 	// PRE-SORT all activities by startTime, endTime
 	activitiesByTime := make([]model.ParsedRow, 0, len(rows))
-	for _, r := range rows {
-		activitiesByTime = append(activitiesByTime, r)
-	}
+	activitiesByTime = append(activitiesByTime, rows...)
 
 	sort.Slice(activitiesByTime, func(i, j int) bool {
 		res := activitiesByTime[i].StartAt.UnixMilli() - activitiesByTime[j].StartAt.UnixMilli()

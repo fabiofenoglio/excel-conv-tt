@@ -14,7 +14,7 @@ func writeSchoolsForDay(c WriteContext, groups []byactivity.ActivityGroup, start
 	for _, schoolGroup := range groups {
 		cursor.MoveColumn(startCell.Column())
 
-		toWrite := fmt.Sprintf("%s", schoolGroup.SequentialCode())
+		toWrite := schoolGroup.SequentialCode()
 		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
 			return err
 		}

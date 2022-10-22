@@ -269,7 +269,7 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 			for _, act := range slot.Rows {
 				var operator model.Operator
 				if act.Operator.Code != "" {
-					operator, _ = c.allData.OperatorsMap[act.Operator.Code]
+					operator = c.allData.OperatorsMap[act.Operator.Code]
 				}
 				if operator.Code == "" {
 					operator.Name = "???"
@@ -316,7 +316,7 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 					// writeInCell := operator.Name
 					writeInCell := act.Code
 					if decoded, ok := schoolGroupsIndex[act.Code]; ok {
-						writeInCell = fmt.Sprintf("%s", decoded.SequentialCode())
+						writeInCell = decoded.SequentialCode()
 					}
 					/*
 						writeInCell := shortenGroupCode(act.Code)
@@ -353,7 +353,9 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 				// write some comment with additional info
 				cellComment := buildContentOfActivityComment(act)
 				if cellComment != "" {
-					addCommentToCell(f, actStartCell, strings.TrimSpace(cellComment))
+					if err := addCommentToCell(f, actStartCell, strings.TrimSpace(cellComment)); err != nil {
+						return zero, err
+					}
 				}
 
 				rowPlacementMap[act.ID] = excel.NewCellBox(actStartCell, actEndCell)
@@ -422,13 +424,6 @@ func writeDayGrid(c WriteContext, day byday.GroupedByDay, startCell excel.Cell, 
 	return DayGridWriteResult{
 		RowsPlacement: rowPlacementMap,
 	}, nil
-}
-
-func shortenGroupCode(code string) string {
-	if len(code) >= 4 && strings.Contains(code, "-") && strings.HasPrefix(code, "P") {
-		return strings.TrimPrefix(code, "P")
-	}
-	return code
 }
 
 type DayGridWriteResult struct {

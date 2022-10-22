@@ -119,7 +119,7 @@ func GetDifferentActivityGroups(rows []model.ParsedRow) []ActivityGroup {
 		}
 
 		// check if this school group has a number already
-		k = e.SchoolClass.Hash()
+		k = e.Code + "/" + e.SchoolClass.Hash()
 		numForGroupInsideSchool, ok := indexForNumberingClasses[k]
 		if !ok {
 			var countingAlready bool
