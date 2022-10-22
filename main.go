@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -93,7 +92,7 @@ func run(args config.Args) error {
 	} else {
 
 		log.Debugf("writing to output file %s", outputFile)
-		err = ioutil.WriteFile(outputFile, bytes, 0755)
+		err = os.WriteFile(outputFile, bytes, 0755)
 		if err != nil {
 			return fmt.Errorf("error saving to output file %s: %w", outputFile, err)
 		}
