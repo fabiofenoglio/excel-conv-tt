@@ -12,7 +12,7 @@ on:
 
 jobs:
   check:
-    name: Build, Test, Coverage
+    name: Build, lint and test
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
