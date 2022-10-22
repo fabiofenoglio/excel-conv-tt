@@ -18,7 +18,7 @@ func toColumnName(columnNumber uint) string {
 			columnNumber = (columnNumber / 26) - 1
 		} else // If remainder is non-zero
 		{
-			columnName += string((rem - 1) + uint('A'))
+			columnName += string((rem - 1) + uint('A')) //nolint:govet
 			columnNumber = columnNumber / 26
 		}
 	}
