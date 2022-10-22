@@ -36,6 +36,15 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+announce:
+  smtp:
+    enabled: true
+    from: "__SMTP_FROM__"
+    to:
+      - "__SMTP_TARGET_0__"
+    body_template: "Ultime release disponibili all'indirizzo: https://github.com/fabiofenoglio/excel-conv-tt/releases"
+    subject_template: 'Excel converter {{ .Tag }} disponibile per il download!'
+    insecure_skip_verify: true
 
 # modelines, feel free to remove those if you don't want/use them:
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
