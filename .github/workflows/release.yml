@@ -65,6 +65,14 @@ jobs:
           regex: false
           include: ".goreleaser.yaml"
 
+      - name: Fill releaser configuration
+        uses: jacobtomlinson/gha-find-replace@v2
+        with:
+          find: "__SMTP_TARGET_1__"
+          replace: "${{ secrets.SMTP_TARGET_1 }}"
+          regex: false
+          include: ".goreleaser.yaml"
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v3
         if: startsWith(github.ref, 'refs/tags/')
