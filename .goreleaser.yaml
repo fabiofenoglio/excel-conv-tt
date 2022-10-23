@@ -42,7 +42,6 @@ announce:
     from: "__SMTP_FROM__"
     to:
       - "__SMTP_TARGET_0__"
-      - "__SUSPENDED_SMTP_TARGET_1__"
     body_template: >
       Ultime release disponibili all'indirizzo: https://github.com/fabiofenoglio/excel-conv-tt/releases
       
