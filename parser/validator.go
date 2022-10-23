@@ -31,6 +31,14 @@ func validate(r ExcelRow) error {
 
 func getWarnings(act model.ParsedRow, args config.Args) []model.Warning {
 	out := make([]model.Warning, 0)
+
+	if strings.Contains(act.Activity.Description, "??") {
+		out = append(out, model.Warning{
+			Code:    "activity-question-marks",
+			Message: "QUESTA ATTIVITA' SEMBRA INDETERMINATA",
+		})
+	}
+
 	if act.Room.Code == "" {
 		out = append(out, model.Warning{
 			Code:    "no-room",
@@ -48,7 +56,7 @@ func getWarnings(act model.ParsedRow, args config.Args) []model.Warning {
 	if act.Activity.Language != "" && strings.ToLower(act.Activity.Language) != "it" {
 		out = append(out, model.Warning{
 			Code:    "non-it-lang",
-			Message: "ATTIVITA PREVISTA IN LINGUA: " + act.Activity.Language,
+			Message: "ATTIVITA' PREVISTA IN LINGUA: " + act.Activity.Language,
 		})
 	}
 

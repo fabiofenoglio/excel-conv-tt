@@ -100,13 +100,19 @@ func Parse(input string, args config.Args, log *logrus.Logger) (model.ParsedData
 		return operators[i].Name < operators[j].Name
 	})
 
-	return model.ParsedData{
+	data := model.ParsedData{
 		Rows:         results,
 		Rooms:        rooms,
 		RoomsMap:     roomsMap,
 		Operators:    operators,
 		OperatorsMap: operatorsMap,
-	}, nil
+	}
+
+	postProcessed, err := PostProcess(data)
+	if err != nil {
+		return zero, err
+	}
+	return postProcessed, nil
 }
 
 func parseRow(r ExcelRow, args config.Args) (model.ParsedRow, error) {

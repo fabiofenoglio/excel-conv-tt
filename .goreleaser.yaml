@@ -42,14 +42,10 @@ announce:
     from: "__SMTP_FROM__"
     to:
       - "__SMTP_TARGET_0__"
+      - "__SMTP_TARGET_1__"
     body_template: >
       Ultime release disponibili all'indirizzo: https://github.com/fabiofenoglio/excel-conv-tt/releases
       
-      TagSubject: {{ .TagSubject }}
-      TagContents: {{ .TagContents }}
-      TagBody: {{ .TagBody }}
-      
-      Changelog: 
       {{ .ReleaseNotes }}
     subject_template: 'Excel converter {{ .Tag }} disponibile per il download!'
     insecure_skip_verify: true
