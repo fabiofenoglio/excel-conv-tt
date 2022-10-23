@@ -33,6 +33,10 @@ func GetDifferentActivityGroups(rows []model.ParsedRow) []ActivityGroup {
 				School:           row.School,
 				SchoolClass:      row.SchoolClass,
 				Composition:      row.GroupComposition,
+				StartsAt:         row.StartAt,
+			}
+			if group.StartsAt.IsZero() || (!row.StartAt.IsZero() && row.StartAt.Before(group.StartsAt)) {
+				group.StartsAt = row.StartAt
 			}
 			index[key] = group
 			grouped = append(grouped, group)
@@ -62,6 +66,11 @@ func GetDifferentActivityGroups(rows []model.ParsedRow) []ActivityGroup {
 	}
 
 	sort.SliceStable(grouped, func(i, j int) bool {
+		if grouped[i].StartsAt.Before(grouped[j].StartsAt) {
+			return true
+		} else if grouped[i].StartsAt.After(grouped[j].StartsAt) {
+			return false
+		}
 		c := strings.Compare(strings.ToLower(grouped[i].Code), strings.ToLower(grouped[j].Code))
 		if c != 0 {
 			return c < 0

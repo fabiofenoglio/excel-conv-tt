@@ -19,6 +19,7 @@ type ActivityGroup struct {
 	Composition model.GroupComposition
 	Notes       string
 
+	StartsAt        time.Time
 	AveragePresence time.Time
 }
 
