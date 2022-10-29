@@ -1,6 +1,8 @@
 package parser
 
 import (
+	"strings"
+
 	"github.com/fabiofenoglio/excelconv/config"
 )
 
@@ -19,7 +21,7 @@ func HydrateGroups(
 	outSchools := make([]School, 0, 10)
 	outSchoolClasses := make([]SchoolClass, 0, 10)
 
-	groupsIndex := make(map[string]VisitingGroup)
+	groupsIndex := make(map[string]int)
 	schoolsIndex := make(map[string]School)
 	schoolClassesIndex := make(map[string]SchoolClass)
 
@@ -31,7 +33,8 @@ func HydrateGroups(
 		if groupCode != "" {
 			mappedRow.VisitingGroupCode = groupCode
 
-			if _, groupAlreadyMapped := groupsIndex[groupCode]; !groupAlreadyMapped {
+			groupMapped, groupAlreadyMapped := groupsIndex[groupCode]
+			if !groupAlreadyMapped {
 
 				schoolCode := nameToCode(row.schoolType) + "/" + nameToCode(row.schoolName)
 				schoolGroupCode := schoolCode + "/" + nameToCode(row.class) + "/" + nameToCode(row.classSection) + "/" + row.BookingCode
@@ -45,9 +48,11 @@ func HydrateGroups(
 						NumFree:         row.numFree,
 						NumAccompanying: row.numAccompanying,
 					},
+					BookingNotes:  row.BookingNote,
+					OperatorNotes: row.OperatorNote,
 				}
-				groupsIndex[newGroup.Code] = newGroup
 				outGroups = append(outGroups, newGroup)
+				groupsIndex[newGroup.Code] = len(outGroups) - 1
 
 				if _, isAlreadyMapped := schoolsIndex[schoolCode]; !isAlreadyMapped {
 					newSchool := School{
@@ -70,6 +75,19 @@ func HydrateGroups(
 					outSchoolClasses = append(outSchoolClasses, newClass)
 				}
 
+			} else {
+				toEnrich := outGroups[groupMapped]
+				if toEnrich.Code != groupCode {
+					panic("invalid reference")
+				}
+
+				if row.OperatorNote != "" && !strings.Contains(toEnrich.OperatorNotes, row.OperatorNote) {
+					toEnrich.OperatorNotes = strings.TrimPrefix(toEnrich.OperatorNotes+"\n"+row.OperatorNote, "\n")
+				}
+				if row.BookingNote != "" && !strings.Contains(toEnrich.BookingNotes, row.BookingNote) {
+					toEnrich.BookingNotes = strings.TrimPrefix(toEnrich.BookingNotes+"\n"+row.BookingNote, "\n")
+				}
+				outGroups[groupMapped] = toEnrich
 			}
 		}
 

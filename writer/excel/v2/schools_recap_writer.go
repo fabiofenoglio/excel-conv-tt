@@ -2,6 +2,7 @@ package excel
 
 import (
 	"fmt"
+	"strings"
 
 	aggregator2 "github.com/fabiofenoglio/excelconv/aggregator/v2"
 	"github.com/fabiofenoglio/excelconv/excel"
@@ -74,17 +75,21 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 			return err
 		}
 
-		// TODO RESTORE
-		/*
-			toWrite = schoolGroup.Notes
-			if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
-				return err
-			}
-			if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(),
-				c.styleRegister.SchoolRecapStyle().Common.StyleID); err != nil {
-				return err
-			}
-		*/
+		toWrite = ""
+		if groupRef.BookingNotes != "" {
+			toWrite += groupRef.BookingNotes
+		}
+		if groupRef.OperatorNotes != "" {
+			toWrite += "\n" + groupRef.OperatorNotes
+		}
+		toWrite = strings.TrimPrefix(toWrite, "\n")
+		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
+			return err
+		}
+		if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(),
+			c.styleRegister.SchoolRecapStyle().Common.StyleID); err != nil {
+			return err
+		}
 
 		cursor.MoveBottom(1)
 	}

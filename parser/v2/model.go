@@ -51,6 +51,8 @@ type VisitingGroup struct {
 	SchoolCode      string
 	SchoolClassCode string
 	Composition     GroupComposition
+	BookingNotes    string
+	OperatorNotes   string
 }
 
 type School struct {
