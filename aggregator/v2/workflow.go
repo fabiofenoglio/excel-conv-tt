@@ -16,9 +16,6 @@ func Execute(ctx config.WorkflowContext, rawInput parser.Output) (Output, error)
 
 	daysWithRooms := AggregateByRooomInCompetenceDay(ctx, days, rawInput.Anagraphics)
 
-	// TODO remove and clear aggregator
-	// daysWithRoomsAndSlots := AggregateByRooomSlotInRoom(ctx, daysWithRooms, rawInput.Anagraphics)
-
 	daysWithRoomsAndGrouping := AggregateByRooomGroupsOnSameActivity(ctx, daysWithRooms, rawInput.Anagraphics)
 
 	daysWithRoomsAndGroupingSlots := AggregateByRooomGroupSlotInRoom(ctx, daysWithRoomsAndGrouping, rawInput.Anagraphics)

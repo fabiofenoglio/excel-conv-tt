@@ -105,7 +105,7 @@ func findBestSlotForGroupedActivity(
 
 	scoreSettings := database.GetEffectiveSlotPlacementPreferencesForRoom(parent.RoomCode)
 
-	doLog := true // should come from input
+	doLog := false // should come from input
 
 	for slotIndex, slot := range slots {
 		if !groupedActivityFitsInTime(act, slotIndex, slots, 0) {
