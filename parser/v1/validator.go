@@ -9,9 +9,10 @@ import (
 
 	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/model"
+	"github.com/fabiofenoglio/excelconv/reader/v1"
 )
 
-func validate(r ExcelRow) error {
+func validate(r reader.ExcelRow) error {
 	if r.Codice == "" {
 		return errors.New("codice is required")
 	}

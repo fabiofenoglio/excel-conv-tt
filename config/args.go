@@ -10,6 +10,8 @@ type Args struct {
 
 	EnableMissingOperatorsWarning bool `long:"missing-operator-warning" description:"Enable warnings for missing operators"`
 
+	Legacy bool `long:"legacy" description:"Run the legacy converter instead of the latest available"`
+
 	PositionalArgs struct {
 		InputFile string `positional-arg-name:"input-file" required:"yes"`
 		Rest      []string

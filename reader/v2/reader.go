@@ -1,4 +1,4 @@
-package parser
+package reader
 
 import (
 	"errors"
@@ -7,13 +7,14 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/xuri/excelize/v2"
 
 	"github.com/fabiofenoglio/excelconv/excel"
-	"github.com/sirupsen/logrus"
 )
 
-func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
+func ReadFromFile(ctx config.WorkflowContext, input string) ([]Row, error) {
+	log := ctx.Logger
 	var err error
 
 	f, err := excelize.OpenFile(input)
@@ -30,18 +31,18 @@ func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
 
 	sheetName := f.GetSheetName(0)
 	if sheetName == "" {
-		sheetName = "Organizzazione"
+		sheetName = DefaultSheetName
 		log.Warnf("reverting to default source sheet name '%s'", sheetName)
 	}
 
 	startingHeaderCell := excel.NewCell(sheetName, 1, 4)
 
 	columnNameToFieldNameMap := make(map[string]string)
-	sampleRow := &ExcelRow{}
+	sampleRow := &Row{}
 	val := reflect.ValueOf(sampleRow).Elem()
 	for i := 0; i < val.NumField(); i++ {
 		field := val.Type().Field(i)
-		columnName := strings.ToLower(strings.TrimSpace(field.Tag.Get("column")))
+		columnName := stringToCode(field.Tag.Get("column"))
 		if columnName != "" {
 			columnNameToFieldNameMap[columnName] = field.Name
 		}
@@ -56,13 +57,13 @@ func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error reading header cell %s: %w", currentHeaderCell.Code(), err)
 		}
-		cellCode := strings.ToLower(strings.TrimSpace(cell))
+		cellCode := stringToCode(cell)
 		if cellCode == "" {
 			break
 		}
 
 		headers = append(headers, cell)
-		if len(headers) > 5000 {
+		if len(headers) > MaxHeaders {
 			return nil, errors.New("too many headers found")
 		}
 
@@ -114,12 +115,17 @@ func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
 	log.Debug("mapping build completed")
 	log.Debug("all required fields have a valid mapping column")
 
-	results := make([]ExcelRow, 0, 20)
+	results := make([]Row, 0, 20)
 
 	currentCell := startingHeaderCell.AtBottom(1)
+	id := 1
 
 	for {
-		row := ExcelRow{}
+		row := Row{
+			ID:        id,
+			rowNumber: currentCell.Row(),
+		}
+		id++
 		anyNonNil := false
 
 		for fieldName, columnNumber := range fieldNameToColumnNumberMap {
@@ -132,7 +138,7 @@ func ReadFromFile(input string, log *logrus.Logger) ([]ExcelRow, error) {
 
 			trimmed := strings.TrimSpace(cellContent)
 			if trimmed != cellContent {
-				log.Warnf("cell %s has a value that starts or finishes with spaces or newline, this should be avoided",
+				log.Debugf("cell %s has a value that starts or finishes with spaces or newline, this should be avoided",
 					cell.Code())
 			}
 			cellContent = trimmed

@@ -8,6 +8,7 @@ import (
 	"time"
 	_ "time/tzdata"
 
+	"github.com/fabiofenoglio/excelconv/reader/v1"
 	"github.com/sirupsen/logrus"
 
 	"github.com/fabiofenoglio/excelconv/config"
@@ -25,7 +26,7 @@ const (
 func Parse(input string, args config.Args, log *logrus.Logger) (model.ParsedData, error) {
 	zero := model.ParsedData{}
 
-	excelRows, err := ReadFromFile(input, log)
+	excelRows, err := reader.ReadFromFile(input, log)
 	if err != nil {
 		return zero, fmt.Errorf("error reading from file: %w", err)
 	}
@@ -115,7 +116,7 @@ func Parse(input string, args config.Args, log *logrus.Logger) (model.ParsedData
 	return postProcessed, nil
 }
 
-func parseRow(r ExcelRow, args config.Args) (model.ParsedRow, error) {
+func parseRow(r reader.ExcelRow, args config.Args) (model.ParsedRow, error) {
 	localTimeZone := config.TimeZone()
 
 	data, err := time.Parse(layoutDateOnlyInITFormat, r.Data)

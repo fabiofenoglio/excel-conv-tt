@@ -1,4 +1,4 @@
-package parser
+package reader
 
 type ExcelRow struct {
 	Codice           string `column:"Codice" required:"true"`

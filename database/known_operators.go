@@ -16,19 +16,19 @@ func init() {
 			Code:            "emanuele",
 			Name:            "Emanuele",
 			BackgroundColor: "#A0FC4E",
-			Aliases:         []string{"ema", "emanuele balboni", "balboni"},
+			Aliases:         []string{"ema", "emanuelebalboni", "balboni"},
 		},
 		KnownOperator{
 			Code:            "jonida",
 			Name:            "Jo",
 			BackgroundColor: "#FDD1C0",
-			Aliases:         []string{"jo", "jonida halo", "jay", "halo"},
+			Aliases:         []string{"jo", "jonidahalo", "jay", "halo"},
 		},
 		KnownOperator{
 			Code:            "marco",
 			Name:            "Marco",
 			BackgroundColor: "#2B66B3",
-			Aliases:         []string{"marco brusaferro", "brusaferro", "brusa", "brusa marco"},
+			Aliases:         []string{"marcobrusaferro", "brusaferro", "brusa", "brusamarco"},
 		},
 		KnownOperator{
 			Code:            "roberta",
@@ -40,7 +40,7 @@ func init() {
 			Code:            "lorenzo",
 			Name:            "Lorenzo",
 			BackgroundColor: "#E7C656",
-			Aliases:         []string{"lorenzo colombo", "colombo"},
+			Aliases:         []string{"lorenzocolombo", "colombo"},
 		},
 		KnownOperator{
 			Code:            "eleonora",
@@ -49,16 +49,16 @@ func init() {
 			Aliases:         []string{"ele"},
 		},
 		KnownOperator{
-			Code:            "simona romaniello",
+			Code:            "simonaromaniello",
 			Name:            "Simona Ro.",
 			BackgroundColor: "#B2B2B2",
-			Aliases:         []string{"ro", "simo ro", "romaniello"},
+			Aliases:         []string{"ro", "simoro", "romaniello"},
 		},
 		KnownOperator{
-			Code:            "simona rachetto",
+			Code:            "simonarachetto",
 			Name:            "Simona Ra.",
 			BackgroundColor: "#964B7C",
-			Aliases:         []string{"ra", "simo ra", "rachetto"},
+			Aliases:         []string{"ra", "simora", "rachetto"},
 		},
 	)
 }
