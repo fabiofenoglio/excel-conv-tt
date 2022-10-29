@@ -90,6 +90,7 @@ type GroupedActivity struct {
 	StartTime         time.Time
 	EndTime           time.Time
 	Rows              []OutputRow
+	FitComputationLog []string
 }
 
 func (g *GroupedActivity) distinct(extractor func(OutputRow) string) []string {

@@ -66,22 +66,22 @@ func AggregateByRooomInCompetenceDay(_ config.WorkflowContext, days []scheduleFo
 			return strings.Compare(roomRefI.Code, roomRefJ.Code) < 0
 		})
 
-		// order each rooms' activities by VisitingGroup.SequentialCode, StartTime, EndTime, BookingCode, ID
+		// order each rooms' activities by StartTime, VisitingGroup.SequentialCode, EndTime, BookingCode, ID
 		for i, roomSchedule := range group.RoomsSchedule {
 			rows := roomSchedule.Rows
 
 			sort.Slice(rows, func(i, j int) bool {
-				groupCodeI := visitingGroupSequentialCodeMap[rows[i].VisitingGroupCode]
-				groupCodeJ := visitingGroupSequentialCodeMap[rows[j].VisitingGroupCode]
-				diff := strings.Compare(groupCodeI, groupCodeJ)
-				if diff != 0 {
-					return diff < 0
-				}
 				if rows[i].StartTime.UnixMilli() < rows[j].StartTime.UnixMilli() {
 					return true
 				}
 				if rows[i].StartTime.UnixMilli() > rows[j].StartTime.UnixMilli() {
 					return false
+				}
+				groupCodeI := visitingGroupSequentialCodeMap[rows[i].VisitingGroupCode]
+				groupCodeJ := visitingGroupSequentialCodeMap[rows[j].VisitingGroupCode]
+				diff := strings.Compare(groupCodeI, groupCodeJ)
+				if diff != 0 {
+					return diff < 0
 				}
 				if rows[i].EndTime.UnixMilli() < rows[j].EndTime.UnixMilli() {
 					return true

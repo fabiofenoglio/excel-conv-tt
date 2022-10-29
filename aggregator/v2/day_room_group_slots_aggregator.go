@@ -49,13 +49,14 @@ func AggregateByRooomGroupSlotInRoom(
 			for _, activity := range roomSchedule.GroupedActivities {
 
 				// find which slot to fill
-				fitsAt, _, fits := findBestSlotForGroupedActivity(activity, mappedForThisRoom.Slots, roomSchedule)
+				fitsAt, _, fits, fitComputationLog := findBestSlotForGroupedActivity(activity, mappedForThisRoom.Slots, roomSchedule)
 				if !fits {
 					// will force to create a new slot
 					fitsAt = len(mappedForThisRoom.Slots)
 				}
 
 				activity.StartingSlotIndex = fitsAt
+				activity.FitComputationLog = fitComputationLog
 
 				for cnt := 0; cnt < len(activity.Rows); cnt++ {
 					effectiveIndex := fitsAt + cnt
@@ -92,29 +93,19 @@ func findBestSlotForGroupedActivity(
 	act GroupedActivity,
 	slots []ScheduleForSingleDayAndRoomGroupSlot,
 	parent ScheduleForSingleDayAndRoomWithGroupedActivities,
-) (int, int, bool) {
+) (int, int, bool, []string) {
 	if len(slots) == 0 {
-		return -1, 0, false
+		return -1, 0, false, nil
 	}
 
 	scoreMap := make(map[int]int)
+	logMap := make([]string, 0)
 	numSlots := len(slots)
 	numSlotsForThisAct := len(act.Rows)
 
 	scoreSettings := database.GetEffectiveSlotPlacementPreferencesForRoom(parent.RoomCode)
 
-	doLog := parent.RoomCode == "planetario"
-
-	apply := func(target *int, amount int, reason string) {
-		if amount == 0 {
-			return
-		}
-		newValue := *target + amount
-		if doLog {
-			fmt.Printf("%+v (%v -> %v) - %s\n", amount, *target, newValue, reason)
-		}
-		*target = newValue
-	}
+	doLog := true // should come from input
 
 	for slotIndex, slot := range slots {
 		if !groupedActivityFitsInTime(act, slotIndex, slots, 0) {
@@ -123,6 +114,18 @@ func findBestSlotForGroupedActivity(
 		}
 
 		score := 0
+
+		apply := func(target *int, amount int, reason string) {
+			if amount == 0 {
+				return
+			}
+			newValue := *target + amount
+			if doLog {
+				logMap = append(logMap,
+					fmt.Sprintf("[%d] %v (%v -> %v) - %s", slotIndex, amount, *target, newValue, reason))
+			}
+			*target = newValue
+		}
 
 		// prefer slots where it fits with some clearance before and after
 		if groupedActivityFitsInTime(act, slotIndex, slots, time.Minute*1) {
@@ -172,14 +175,9 @@ func findBestSlotForGroupedActivity(
 		scoreMap[slotIndex] = score
 	}
 
-	if doLog {
-		fmt.Print(act.BookingCodes(), act.StartTime.Hour(), act.StartTime.Minute(), " - ")
-		fmt.Println(scoreMap)
-	}
-
 	if len(scoreMap) == 0 {
 		// no valid slots
-		return -1, 0, false
+		return -1, 0, false, nil
 	}
 
 	// pick the highest score
@@ -191,7 +189,7 @@ func findBestSlotForGroupedActivity(
 		}
 	}
 
-	return highestIndex, highestScore, true
+	return highestIndex, highestScore, true, logMap
 }
 
 func sameOperatorHasOtherGroupedActivitiesInSlot(operatorCodes []string, slot ScheduleForSingleDayAndRoomGroupSlot) bool {

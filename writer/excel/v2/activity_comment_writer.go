@@ -105,6 +105,13 @@ func buildContentOfActivityComment(c WriteContext, groupedActivities aggregator2
 		}
 	}
 
+	if len(groupedActivities.FitComputationLog) > 0 {
+		cellComment += "Fattori di piazzamento: \n"
+		for _, log := range groupedActivities.FitComputationLog {
+			cellComment += "  " + log + "\n"
+		}
+	}
+
 	return strings.TrimSpace(cellComment)
 }
 
