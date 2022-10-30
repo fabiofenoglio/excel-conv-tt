@@ -10,40 +10,58 @@ func writePlaceholdersForDay(c WriteContext, startCell excel.Cell) error {
 	f := c.outputFile
 	cursor := startCell.Copy()
 
+	type placeholder struct {
+		emoji string
+		text  string
+	}
+
 	// write placeholder for info at the bottom
-	rowsToWrite := []string{
-		"🛂 Piano 0 / Accoglienza",
-		"💶 Bookshop / Cassa",
-		"🔀 Cambio Stefano",
-		"🔌 On / off museo",
-		"🛠 Allest. / disallest.",
-		"🚷 Assenti",
-		"📝 Appuntamenti / note",
-		"🚨 Responsabile emergenza",
-		"🧯 Addetto antincendio / impianti",
-		"⛑ Addetto antincendio / primo soccorso",
-		"🚌 Orari navetta dalle - alle",
+	rowsToWrite := []placeholder{
+		{emoji: "🛂", text: "Piano 0 / Accoglienza"},
+		{emoji: "💶", text: "Bookshop / Cassa"},
+		{emoji: "🔀", text: "Cambio Stefano"},
+		{emoji: "🔌", text: "On / off museo"},
+		{emoji: "🛠", text: "Allest. / disallest."},
+		{emoji: "🚷", text: "Assenti"},
+		{emoji: "📝", text: "Appuntamenti / note"},
+		{emoji: "🚨", text: "Responsabile emergenza"},
+		{emoji: "🧯", text: "Addetto antincendio / impianti"},
+		{emoji: "⛑", text: "Addetto antincendio / primo soccorso"},
+		{emoji: "🚌", text: "Orari navetta dalle - alle"},
 	}
 
 	cursor = cursor.AtBottom(1)
 
 	for _, rowToWrite := range rowsToWrite {
 		valueCursors := cursor.AtRight(10)
-		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), valueCursors.AtLeft(1).Code()); err != nil {
+
+		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), rowToWrite.emoji); err != nil {
 			return err
 		}
-		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), strings.ToUpper(rowToWrite)); err != nil {
+		if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(),
+			c.styleRegister.Get(bottomPlaceholderEmojiStyle).SingleCell()); err != nil {
+			return err
+		}
+
+		if err := f.MergeCell(cursor.SheetName(), cursor.AtRight(1).Code(), valueCursors.AtLeft(1).Code()); err != nil {
+			return err
+		}
+		if err := f.SetCellValue(cursor.SheetName(), cursor.AtRight(1).Code(), strings.ToUpper(rowToWrite.text)); err != nil {
+			return err
+		}
+		if err := f.SetCellStyle(cursor.SheetName(), cursor.AtRight(1).Code(), valueCursors.AtLeft(1).Code(),
+			c.styleRegister.Get(bottomPlaceholderTextStyle).SingleCell()); err != nil {
 			return err
 		}
 
 		if err := f.SetCellValue(cursor.SheetName(), valueCursors.Code(), ""); err != nil {
 			return err
 		}
-		if err := f.MergeCell(cursor.SheetName(), valueCursors.Code(), valueCursors.AtRight(9).Code()); err != nil {
+		if err := f.MergeCell(cursor.SheetName(), valueCursors.Code(), valueCursors.AtRight(11).Code()); err != nil {
 			return err
 		}
-		if err := f.SetCellStyle(cursor.SheetName(), valueCursors.Code(), valueCursors.Code(),
-			c.styleRegister.ToBeFilledStyle().Common.StyleID); err != nil {
+		if err := f.SetCellStyle(cursor.SheetName(), valueCursors.Code(), valueCursors.AtRight(11).Code(),
+			c.styleRegister.ToBeFilledStyle().SingleCell()); err != nil {
 			return err
 		}
 

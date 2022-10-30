@@ -124,15 +124,6 @@ func isCellFree(c WriteContext, cell excel.Cell) bool {
 	if style == 0 {
 		return true
 	}
-	if c.styleRegister.DayBoxStyle().MatchesID(style) {
-		return true
-	}
-	if c.styleRegister.DayRoomBoxStyle().MatchesID(style) {
-		return true
-	}
-	if c.styleRegister.UnusedRoomStyle().MatchesID(style) {
-		return true
-	}
 
 	return false
 }

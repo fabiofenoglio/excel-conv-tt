@@ -15,7 +15,7 @@ func buildContentOfActivityComment(c WriteContext, groupedActivities aggregator2
 	cellComment := ``
 
 	for _, warning := range groupedActivities.Warnings() {
-		cellComment += "ATTENZIONE: " + warning.Message + "\n\n"
+		cellComment += "⚠️ " + warning.Message + "\n\n"
 	}
 
 	room := c.anagraphicsRef.Rooms[groupedActivities.Rows[0].RoomCode]
@@ -118,6 +118,10 @@ func buildContentOfActivityComment(c WriteContext, groupedActivities aggregator2
 func buildContentOfActivityCommentForSingleGroupOfGroupedActivity(c WriteContext, act aggregator2.OutputRow) string {
 	cellComment := ``
 
+	for _, warning := range act.Warnings {
+		cellComment += "⚠️ " + warning.Message + "\n\n"
+	}
+
 	operator := c.anagraphicsRef.Operators[act.OperatorCode]
 	activityRef := c.anagraphicsRef.Activities[act.ActivityCode]
 	activityTypeRef := c.anagraphicsRef.ActivityTypes[activityRef.TypeCode]
@@ -192,12 +196,10 @@ func buildContentOfActivityCommentForSingleGroupOfGroupedActivity(c WriteContext
 
 func addCommentToCell(f *excelize.File, cell excel.Cell, content string) error {
 	type serializable struct {
-		Author string `json:"author"`
-		Text   string `json:"text"`
+		Text string `json:"text"`
 	}
 	v := serializable{
-		Author: "planner: ",
-		Text:   content,
+		Text: "---\n" + content,
 	}
 
 	if len(v.Text) >= 32000 {

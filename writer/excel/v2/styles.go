@@ -5,327 +5,287 @@ import (
 )
 
 var (
-	dayBoxStyle = &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#DDDDDD"},
-					Pattern: 1,
-				},
-				Border: []excelize.Border{},
-			},
+	standardWarningVariant = func(s *excelize.Style) {
+		if s.Border != nil {
+			for i := range s.Border {
+				s.Border[i].Color = "#CC2222"
+				s.Border[i].Style = 5
+			}
+		}
+	}
+
+	dayBoxStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#DDDDDD"},
+			Pattern: 1,
 		},
 	}
 
-	dayRoomBoxStyle = &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-				},
-				Fill: excelize.Fill{},
-				Border: []excelize.Border{
-					{Type: "left", Color: "333333", Style: 4},
-					{Type: "right", Color: "333333", Style: 4},
-					{Type: "top", Color: "333333", Style: 4},
-					{Type: "bottom", Color: "333333", Style: 4},
-				},
-			},
+	dayRoomBoxStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+		},
+		Fill: excelize.Fill{},
+		Border: &StyleDefV2Border{
+			Color: "333333", Style: 4,
+			Top: true, Bottom: true, Left: true, Right: true,
 		},
 	}
 
-	schoolRecapStyle = &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Alignment: &excelize.Alignment{
-					Vertical: "center",
-					WrapText: true,
-				},
-			},
+	schoolRecapStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Vertical: "center",
+			WrapText: true,
+		},
+		Border: &StyleDefV2Border{
+			Color: "333333", Style: 4,
+			Bottom: true,
+		},
+	}
+	schoolRecapHeaderStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Vertical: "center",
+			WrapText: true,
+		},
+		Font: &excelize.Font{
+			Bold: true,
+			Size: 10,
+		},
+		Border: &StyleDefV2Border{
+			Color: "333333", Style: 1,
+			Bottom: true,
 		},
 	}
 
-	dayHeaderStyle = &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Font: &excelize.Font{
-					Size:  14,
-					Color: "#FFFFFF",
-				},
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#48752C"},
-					Pattern: 1,
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "#48752C", Style: 1},
-					{Type: "right", Color: "#48752C", Style: 1},
-					{Type: "top", Color: "#48752C", Style: 1},
-					{Type: "bottom", Color: "#48752C", Style: 1},
-				},
-			},
+	dayHeaderStyle = &StyleDefV2{
+		Font: &excelize.Font{
+			Size:  14,
+			Color: "#FFFFFF",
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#48752C"},
+			Pattern: 1,
+		},
+		Border: &StyleDefV2Border{
+			Color: "#48752C", Style: 1,
+			Top: true, Bottom: true, Left: true, Right: true,
 		},
 	}
 
-	inBoxAnnotationOnLeft = &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Font: &excelize.Font{
-					Size:  11,
-					Color: "#333333",
-				},
-				Alignment: &excelize.Alignment{
-					Horizontal: "left",
-					Vertical:   "center",
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#FFFFFF"},
-					Pattern: 1,
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "#333333", Style: 1},
-					{Type: "right", Color: "#333333", Style: 1},
-					{Type: "top", Color: "#333333", Style: 1},
-					{Type: "bottom", Color: "#333333", Style: 1},
-				},
-			},
+	inBoxAnnotationOnLeft = &StyleDefV2{
+		Font: &excelize.Font{
+			Size:  11,
+			Color: "#333333",
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#FFFFFF"},
+			Pattern: 1,
+		},
+		Border: &StyleDefV2Border{
+			Color: "#333333", Style: 1,
+			Top: true, Bottom: true, Left: true, Right: true,
 		},
 	}
-	inBoxAnnotationOnRight = &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Font: &excelize.Font{
-					Size:  11,
-					Color: "#333333",
-				},
-				Alignment: &excelize.Alignment{
-					Horizontal: "right",
-					Vertical:   "center",
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#FFFFFF"},
-					Pattern: 1,
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "#333333", Style: 1},
-					{Type: "right", Color: "#333333", Style: 1},
-					{Type: "top", Color: "#333333", Style: 1},
-					{Type: "bottom", Color: "#333333", Style: 1},
-				},
-			},
+	inBoxAnnotationOnRight = &StyleDefV2{
+		Font: &excelize.Font{
+			Size:  11,
+			Color: "#333333",
+		},
+		Alignment: &excelize.Alignment{
+			Horizontal: "right",
+			Vertical:   "center",
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#FFFFFF"},
+			Pattern: 1,
+		},
+		Border: &StyleDefV2Border{
+			Color: "#333333", Style: 1,
+			Top: true, Bottom: true, Left: true, Right: true,
 		},
 	}
 
-	noRoomStyle = &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#E02222"},
-					Pattern: 1,
-				},
-				Font: &excelize.Font{
-					Color: "#FFFFFF",
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "FFFFFF", Style: 2},
-					{Type: "right", Color: "FFFFFF", Style: 2},
-					{Type: "top", Color: "FFFFFF", Style: 1},
-					{Type: "bottom", Color: "FFFFFF", Style: 1},
-				},
-			},
+	noRoomStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#E02222"},
+			Pattern: 1,
+		},
+		Font: &excelize.Font{
+			Color: "#FFFFFF",
+		},
+		Border: &StyleDefV2Border{
+			Color: "FFFFFF", Style: 2,
+			Top: true, Bottom: true, Left: true, Right: true,
+		},
+		AsWarning: standardWarningVariant,
+	}
+
+	unusedRoomStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#EEEEEE"},
+			Pattern: 1,
+		},
+		Border: &StyleDefV2Border{
+			Color: "333333", Style: 4,
+			Top: true, Bottom: true, Left: true, Right: true,
+		},
+		AsWarning: standardWarningVariant,
+	}
+
+	noOperatorStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+			WrapText:   true,
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#E02222"},
+			Pattern: 1,
+		},
+		Font: &excelize.Font{
+			Color: "#FFFFFF",
+			Size:  10,
+		},
+		Border: &StyleDefV2Border{
+			Color: "FFFFFF", Style: 1,
+			Top: true, Bottom: true, Left: true, Right: true,
+		},
+		AsWarning: standardWarningVariant,
+	}
+
+	noOperatorNeededStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+			WrapText:   true,
+		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#EEEEEE"},
+			Pattern: 1,
+		},
+		Font: &excelize.Font{
+			Size: 10,
+		},
+		Border: &StyleDefV2Border{
+			Color: "333333", Style: 1,
+			Top: true, Bottom: true, Left: true, Right: true,
+		},
+		AsWarning: standardWarningVariant,
+	}
+
+	toBeFilledStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+			WrapText:   true,
+		},
+		Border: &StyleDefV2Border{
+			Color: "333333", Style: 4,
+			Bottom: true,
+		},
+		AsWarning: standardWarningVariant,
+	}
+
+	bottomPlaceholderEmojiStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+		},
+		Border: &StyleDefV2Border{
+			Color: "333333", Style: 4,
+			Bottom: true,
+		},
+	}
+	bottomPlaceholderTextStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+			WrapText:   true,
+		},
+		Border: &StyleDefV2Border{
+			Color: "333333", Style: 4,
+			Bottom: true,
+		},
+		Font: &excelize.Font{
+			Bold: true,
 		},
 	}
 
-	unusedRoomStyle = &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#EEEEEE"},
-					Pattern: 1,
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "333333", Style: 4},
-					{Type: "right", Color: "333333", Style: 4},
-					{Type: "top", Color: "333333", Style: 4},
-					{Type: "bottom", Color: "333333", Style: 4},
-				},
-			},
-		},
-	}
-
-	noOperatorStyle = &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-					WrapText:   true,
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#E02222"},
-					Pattern: 1,
-				},
-				Font: &excelize.Font{
-					Color: "#FFFFFF",
-					Size:  10,
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "FFFFFF", Style: 1},
-					{Type: "right", Color: "FFFFFF", Style: 1},
-					{Type: "top", Color: "FFFFFF", Style: 4},
-					{Type: "bottom", Color: "FFFFFF", Style: 4},
-				},
-			},
-		},
-	}
-
-	noOperatorNeededStyle = &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-					WrapText:   true,
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#EEEEEE"},
-					Pattern: 1,
-				},
-				Font: &excelize.Font{
-					Size: 10,
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "EEEEEE", Style: 1},
-					{Type: "right", Color: "EEEEEE", Style: 1},
-					{Type: "top", Color: "EEEEEE", Style: 4},
-					{Type: "bottom", Color: "EEEEEE", Style: 4},
-				},
-			},
-		},
-	}
-
-	toBeFilledStyle = &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-					WrapText:   true,
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#f9dbdb"},
-					Pattern: 1,
-				},
-				Font: &excelize.Font{
-					Color: "#FFFFFF",
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "FFFFFF", Style: 2},
-					{Type: "right", Color: "FFFFFF", Style: 2},
-					{Type: "top", Color: "FFFFFF", Style: 1},
-					{Type: "bottom", Color: "FFFFFF", Style: 1},
-				},
-			},
+	softDividerStyle = &StyleDefV2{
+		Border: &StyleDefV2Border{
+			Color: "333333", Style: 1,
+			Bottom: true,
 		},
 	}
 )
 
-func buildForRoom(color string) *Style {
-	return &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{"#FFFFFF"},
-					Pattern: 1,
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "333333", Style: 2},
-					{Type: "right", Color: "333333", Style: 2},
-					{Type: "top", Color: "333333", Style: 1},
-					{Type: "bottom", Color: "333333", Style: 1},
-				},
-			},
+func buildForRoom(color string) *StyleDefV2 {
+	return &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
 		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{"#FFFFFF"},
+			Pattern: 1,
+		},
+		Border: &StyleDefV2Border{
+			Color: "333333", Style: 2,
+			Top: true, Bottom: true, Left: true, Right: true,
+		},
+		AsWarning: standardWarningVariant,
 	}
 }
 
-func buildForOperator(color string) *Style {
-	return &Style{
-		Common: &StyleDefinition{
-			Style: &excelize.Style{
-				Font: &excelize.Font{
-					Size: 10,
-				},
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-					WrapText:   true,
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{color},
-					Pattern: 1,
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: color, Style: 1},
-					{Type: "right", Color: color, Style: 1},
-					{Type: "top", Color: color, Style: 4},
-					{Type: "bottom", Color: color, Style: 4},
-				},
-			},
+func buildForOperator(color string) *StyleDefV2 {
+	return &StyleDefV2{
+		Font: &excelize.Font{
+			Size: 10,
 		},
-		WarningVariant: &StyleDefinition{
-			Style: &excelize.Style{
-				Font: &excelize.Font{
-					Size: 10,
-				},
-				Alignment: &excelize.Alignment{
-					Horizontal: "center",
-					Vertical:   "center",
-					WrapText:   true,
-				},
-				Fill: excelize.Fill{
-					Type:    "pattern",
-					Color:   []string{color},
-					Pattern: 1,
-				},
-				Border: []excelize.Border{
-					{Type: "left", Color: "#CC2222", Style: 5},
-					{Type: "right", Color: "#CC2222", Style: 5},
-					{Type: "top", Color: "#CC2222", Style: 1},
-					{Type: "bottom", Color: "#CC2222", Style: 1},
-				},
-			},
+		Alignment: &excelize.Alignment{
+			Horizontal: "center",
+			Vertical:   "center",
+			WrapText:   true,
 		},
+		Fill: excelize.Fill{
+			Type:    "pattern",
+			Color:   []string{color},
+			Pattern: 1,
+		},
+		Border: &StyleDefV2Border{
+			Color: "555555", Style: 1,
+			Top: true, Bottom: true, Left: true, Right: true,
+		},
+		AsWarning: standardWarningVariant,
 	}
 }

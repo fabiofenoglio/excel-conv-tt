@@ -30,7 +30,7 @@ func writeOperatorsLegenda(c WriteContext, startCell excel.Cell, operators map[s
 			return err
 		}
 		if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(),
-			style.Common.StyleID); err != nil {
+			style.SingleCell()); err != nil {
 			return err
 		}
 

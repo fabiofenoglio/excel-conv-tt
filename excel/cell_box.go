@@ -13,6 +13,8 @@ type CellBox interface {
 	LeftColumn() uint
 	RightColumn() uint
 
+	Width() uint
+	Height() uint
 	NumCellsInArea() uint
 
 	Code() string
@@ -82,5 +84,5 @@ func (c *CellBoxImpl) Code() string {
 }
 
 func (c *CellBoxImpl) NumCellsInArea() uint {
-	return (c.RightColumn() - c.LeftColumn() + 1) * (c.BottomRow() - c.TopRow() + 1)
+	return c.Width() * c.Height()
 }

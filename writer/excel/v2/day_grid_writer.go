@@ -62,7 +62,7 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 			numActs = uint(len(group.Slots))
 		}
 
-		toWrite := room.Name
+		toWrite := strings.ToUpper(room.Name)
 		if room.Code == "" {
 			toWrite = "???"
 		}
@@ -197,7 +197,7 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 	boxEnd := startCell.Copy().AtRight(actualWidth - 1).AtBottom(numOfTimeRows + 2)
 	if err := f.SetCellStyle(
 		startCell.SheetName(), boxStart.Code(), boxEnd.Code(),
-		c.styleRegister.DayBoxStyle().Common.StyleID,
+		c.styleRegister.DayBoxStyle().SingleCell(),
 	); err != nil {
 		return zero, err
 	}
@@ -224,25 +224,25 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 		boxStart := startCell.AtColumn(columnsForRoomStartAt).AtBottom(3)
 		boxEnd := boxStart.AtRight(roomWidths[room.Code] - 1).AtBottom(numOfTimeRows - 1)
 
-		styleToUse := c.styleRegister.DayRoomBoxStyle().Common.StyleID
+		styleToUse := c.styleRegister.DayRoomBoxStyle()
 		if group.NumTotalInAllSlots == 0 {
-			styleToUse = c.styleRegister.UnusedRoomStyle().Common.StyleID
+			styleToUse = c.styleRegister.UnusedRoomStyle()
 		}
-		if err := f.SetCellStyle(startCell.SheetName(), boxStart.Code(), boxEnd.Code(), styleToUse); err != nil {
+		if err := f.SetCellStyle(startCell.SheetName(), boxStart.Code(), boxEnd.Code(), styleToUse.SingleCell()); err != nil {
 			return zero, err
 		}
 
 		boxHeaderStart := boxStart.AtTop(1)
 		boxHeaderEnd := boxHeaderStart.AtColumn(boxEnd.Column())
 
-		var style *Style
+		var style *RegisteredStyleV2
 		if room.Code != "" {
 			style = c.styleRegister.RoomStyle(room.BackgroundColor)
 		} else {
 			style = c.styleRegister.NoRoomStyle()
 		}
 
-		if err := f.SetCellStyle(cursor.SheetName(), boxHeaderStart.Code(), boxHeaderEnd.Code(), style.Common.StyleID); err != nil {
+		if err := f.SetCellStyle(cursor.SheetName(), boxHeaderStart.Code(), boxHeaderEnd.Code(), style.SingleCell()); err != nil {
 			return zero, err
 		}
 	}
@@ -319,7 +319,7 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 				}
 
 				// apply style depending on the operator
-				var style *Style
+				var style *RegisteredStyleV2
 				if len(operators) == 0 {
 					if room.AllowMissingOperator || !ctx.Config.EnableMissingOperatorsWarning {
 						style = c.styleRegister.NoOperatorNeededStyle()
@@ -333,9 +333,8 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 						style = c.styleRegister.NoOperatorNeededStyle()
 					}
 				}
-				styleID := style.Common.StyleID
 				if len(act.Warnings()) > 0 {
-					styleID = style.WarningIDOrDefault()
+					style = style.WithWarning()
 				}
 
 				// decide how to annotate this activity group depending on available rows/columns
@@ -372,6 +371,10 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 					}
 					toWrite = strings.TrimSuffix(toWrite, ", ")
 
+					if len(act.Warnings()) > 0 {
+						toWrite = "⚠️ " + toWrite
+					}
+
 					if err := f.SetCellValue(
 						actStartCell.SheetName(),
 						activityNameHeaderBox.TopLeft().Code(),
@@ -402,12 +405,7 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 						}
 					}
 
-					if err := f.SetCellStyle(
-						actStartCell.SheetName(),
-						actStartCell.Code(),
-						actEndCell.Code(),
-						styleID,
-					); err != nil {
+					if err := applyStyleToBox(f, style, excel.NewCellBox(actStartCell, actEndCell)); err != nil {
 						return zero, err
 					}
 
@@ -436,22 +434,22 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 						}
 
 						for r := actStartCell.Row(); r <= actEndCell.Row(); r++ {
+							effectiveWrite := writeInCell
+							if len(act.Warnings()) > 0 && slotCnt == 0 && actEndCell.Row() > actStartCell.Row() && r == actStartCell.Row() {
+								effectiveWrite = "⚠️"
+							}
+
 							if err := f.SetCellValue(
 								actStartCell.SheetName(),
 								actStartCell.AtRow(r).AtRight(uint(slotCnt)).Code(),
-								writeInCell,
+								effectiveWrite,
 							); err != nil {
 								return zero, err
 							}
 						}
 					}
 
-					if err := f.SetCellStyle(
-						actStartCell.SheetName(),
-						actStartCell.Code(),
-						actEndCell.Code(),
-						styleID,
-					); err != nil {
+					if err := applyStyleToBox(f, style, excel.NewCellBox(actStartCell, actEndCell)); err != nil {
 						return zero, err
 					}
 
@@ -481,7 +479,7 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 		day.Day.Format("Mon 2 January")); err != nil {
 		return zero, err
 	}
-	if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(), c.styleRegister.DayHeaderStyle().Common.StyleID); err != nil {
+	if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(), c.styleRegister.DayHeaderStyle().SingleCell()); err != nil {
 		return zero, err
 	}
 

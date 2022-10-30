@@ -86,7 +86,7 @@ func writeAnnotationsOnActivities(
 						style = c.styleRegister.InBoxAnnotationOnRightStyle()
 					}
 					if err := f.SetCellStyle(actBox.TopLeft().SheetName(), bestSpace.box.TopLeft().Code(), bestSpace.box.BottomRight().Code(),
-						style.Common.StyleID); err != nil {
+						style.SingleCell()); err != nil {
 						return err
 					}
 

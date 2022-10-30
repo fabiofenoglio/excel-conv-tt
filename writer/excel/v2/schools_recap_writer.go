@@ -12,7 +12,65 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 	f := c.outputFile
 	commonData := c.allData.CommonData
 	cursor := startCell.Copy()
+	rightColumn := startCell.Column() + 21
 
+	// write header
+	cursor.MoveColumn(startCell.Column())
+
+	if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), "#"); err != nil {
+		return err
+	}
+	cursor.MoveRight(1)
+
+	if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(8).Code()); err != nil {
+		return err
+	}
+
+	if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), "SCUOLA"); err != nil {
+		return err
+	}
+
+	cursor.MoveRight(9)
+
+	if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
+		return err
+	}
+	if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), "CLASSE"); err != nil {
+		return err
+	}
+
+	cursor.MoveRight(3)
+
+	if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
+		return err
+	}
+
+	if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), "NUM."); err != nil {
+		return err
+	}
+
+	if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), 35); err != nil {
+		return err
+	}
+
+	cursor.MoveRight(3)
+
+	if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(6).Code()); err != nil {
+		return err
+	}
+
+	if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), "NOTE E REFERENTI"); err != nil {
+		return err
+	}
+
+	if err := f.SetCellStyle(cursor.SheetName(), cursor.AtColumn(startCell.Column()).Code(), cursor.AtColumn(rightColumn).Code(),
+		c.styleRegister.Get(schoolRecapHeaderStyle).SingleCell()); err != nil {
+		return err
+	}
+
+	cursor.MoveBottom(1)
+
+	// write group by group
 	lastSchoolCodeWrote := ""
 
 	for _, schoolGroup := range groups {
@@ -82,16 +140,16 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 
 		cursor.MoveRight(3)
 
-		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(5).Code()); err != nil {
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(6).Code()); err != nil {
 			return err
 		}
 
 		toWrite = ""
 		if groupRef.BookingNotes != "" {
-			toWrite += "*** " + groupRef.BookingNotes + "\n"
+			toWrite += "⚠️ " + groupRef.BookingNotes + "\n"
 		}
 		if groupRef.OperatorNotes != "" {
-			toWrite += "*** " + groupRef.OperatorNotes + "\n"
+			toWrite += "⚠️ " + groupRef.OperatorNotes + "\n"
 		}
 
 		teacherLine := ""
@@ -120,8 +178,8 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 		currentNum++
 	}
 
-	if err := f.SetCellStyle(cursor.SheetName(), startCell.Code(), cursor.Code(),
-		c.styleRegister.SchoolRecapStyle().Common.StyleID); err != nil {
+	if err := f.SetCellStyle(cursor.SheetName(), startCell.AtBottom(1).Code(), cursor.AtColumn(rightColumn).Code(),
+		c.styleRegister.SchoolRecapStyle().SingleCell()); err != nil {
 		return err
 	}
 

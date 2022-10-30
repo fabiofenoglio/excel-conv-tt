@@ -150,6 +150,20 @@ func writeDayWithDetails(ctx config.WorkflowContext, c WriteContext, groupByDay 
 		out = outFromDayGridWriter
 	}
 	tracker.MoveAtBottomLeftOfCoveredArea()
+	tracker.MoveTop(1)
+
+	if err := c.outputFile.SetRowHeight(tracker.SheetName(), int(tracker.Row()), 10); err != nil {
+		return zero, err
+	}
+	if err := c.outputFile.SetCellStyle(tracker.SheetName(), tracker.Code(), tracker.AtColumn(tracker.CoveredArea().RightColumn()-1).Code(),
+		c.styleRegister.Get(softDividerStyle).Bottom()); err != nil {
+		return zero, err
+	}
+	tracker.MoveBottom(1)
+	if err := c.outputFile.SetRowHeight(tracker.SheetName(), int(tracker.Row()), 10); err != nil {
+		return zero, err
+	}
+	tracker.MoveBottom(1)
 
 	// WRITE SCHOOL/GROUPS FOR THE DAY
 	schoolGroupsForThisDay := groupByDay.VisitingGroups
@@ -166,6 +180,13 @@ func writeDayWithDetails(ctx config.WorkflowContext, c WriteContext, groupByDay 
 	}
 
 	tracker.MoveAtBottomLeftOfCoveredArea()
+	tracker.MoveTop(1)
+
+	if err := c.outputFile.SetCellStyle(tracker.SheetName(), tracker.Code(), tracker.AtColumn(tracker.CoveredArea().RightColumn()-1).Code(),
+		c.styleRegister.Get(softDividerStyle).Bottom()); err != nil {
+		return zero, err
+	}
+	tracker.MoveBottom(1)
 
 	// WRITE PLACEHOLDERS FOR ORDER OF THE DAY
 	{
