@@ -27,6 +27,7 @@ func AggregateByRooomGroupSlotInRoom(
 		}
 
 		for _, roomSchedule := range daySchedule.RoomsSchedule {
+
 			numSlotsToCreate := 1
 			room := anagraphicsRef.Rooms[roomSchedule.RoomCode]
 			if room.Slots > 0 {
@@ -48,17 +49,31 @@ func AggregateByRooomGroupSlotInRoom(
 
 			for _, activity := range roomSchedule.GroupedActivities {
 
-				// find which slot to fill
-				fitsAt, _, fits, fitComputationLog := findBestSlotForGroupedActivity(activity, mappedForThisRoom.Slots, roomSchedule)
-				if !fits {
-					// will force to create a new slot
-					fitsAt = len(mappedForThisRoom.Slots)
+				var numSlotsToSpan int
+				var fitsAt int
+				var fitComputationLog []string
+
+				if room.GroupActivities && len(mappedForThisRoom.Slots) > 1 && noOtherActivitiesInSlots(activity, roomSchedule) {
+					// take all the slots as they are all available
+					fitsAt = 0
+					numSlotsToSpan = len(mappedForThisRoom.Slots)
+
+				} else {
+					var fits bool
+					// find which slot to fill
+					fitsAt, _, fits, fitComputationLog = findBestSlotForGroupedActivity(activity, mappedForThisRoom.Slots, roomSchedule)
+					if !fits {
+						// will force to create a new slot
+						fitsAt = len(mappedForThisRoom.Slots)
+					}
+					numSlotsToSpan = len(activity.Rows)
 				}
 
 				activity.StartingSlotIndex = fitsAt
 				activity.FitComputationLog = fitComputationLog
+				activity.NumOccupiedSlots = numSlotsToSpan
 
-				for cnt := 0; cnt < len(activity.Rows); cnt++ {
+				for cnt := 0; cnt < numSlotsToSpan; cnt++ {
 					effectiveIndex := fitsAt + cnt
 
 					if len(mappedForThisRoom.Slots) <= effectiveIndex {
@@ -190,6 +205,27 @@ func findBestSlotForGroupedActivity(
 	}
 
 	return highestIndex, highestScore, true, logMap
+}
+
+func noOtherActivitiesInSlots(
+	act GroupedActivity,
+	parent ScheduleForSingleDayAndRoomWithGroupedActivities) bool {
+
+	if act.StartTime.IsZero() || act.EndTime.IsZero() {
+		return false
+	}
+
+	for _, groupedActivity := range parent.GroupedActivities {
+		if groupedActivity.ID == act.ID {
+			continue
+		}
+
+		if act.StartTime.Before(groupedActivity.EndTime) && groupedActivity.StartTime.Before(act.EndTime) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func sameOperatorHasOtherGroupedActivitiesInSlot(operatorCodes []string, slot ScheduleForSingleDayAndRoomGroupSlot) bool {

@@ -1,6 +1,8 @@
 package aggregator
 
 import (
+	"sort"
+	"strings"
 	"time"
 
 	"github.com/fabiofenoglio/excelconv/parser/v2"
@@ -87,7 +89,9 @@ type ScheduleForSingleDayAndRoomWithGroupedActivities struct {
 }
 
 type GroupedActivity struct {
+	ID                int
 	StartingSlotIndex int
+	NumOccupiedSlots  int
 	StartTime         time.Time
 	EndTime           time.Time
 	Rows              []OutputRow
@@ -109,6 +113,9 @@ func (g *GroupedActivity) distinct(extractor func(OutputRow) string) []string {
 	for k := range index {
 		out = append(out, k)
 	}
+	sort.Slice(out, func(i, j int) bool {
+		return strings.Compare(out[i], out[j]) < 0
+	})
 	return out
 }
 

@@ -34,6 +34,17 @@ func AggregateByRooomGroupsOnSameActivity(
 		grouped = append(grouped, mapped)
 	}
 
+	cnt := 1
+
+	for i1, group := range grouped {
+		for i2, g := range group.RoomsSchedule {
+			for i3, _ := range g.GroupedActivities {
+				grouped[i1].RoomsSchedule[i2].GroupedActivities[i3].ID = cnt
+				cnt++
+			}
+		}
+	}
+
 	out := make([]ScheduleForSingleDayWithRoomsAndGroupedActivities, 0, len(grouped))
 	for _, e := range grouped {
 		out = append(out, *e)

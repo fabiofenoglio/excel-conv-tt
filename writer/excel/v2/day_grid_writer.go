@@ -294,7 +294,7 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 				i := 0
 
 				actStartCell := cursor.Copy()
-				actEndCell := cursor.Copy().AtRight(uint(len(act.Rows) - 1))
+				actEndCell := cursor.Copy().AtRight(uint(act.NumOccupiedSlots - 1))
 
 				for {
 					if !inRange {
