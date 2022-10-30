@@ -39,10 +39,12 @@ changelog:
 announce:
   smtp:
     enabled: true
-    from: "__SMTP_FROM__"
+    from: "___SMTP_FROM___"
     to:
-      - "__SMTP_TARGET_0__"
-      - "__SMTP_TARGET_1__"
+      - "___SMTP_TARGET_0___"
+      - "___SMTP_TARGET_1___"
+      - "___SMTP_TARGET_2___"
+      - "___SMTP_TARGET_3___"
     body_template: >
       Ultime release disponibili all'indirizzo: https://github.com/fabiofenoglio/excel-conv-tt/releases
       
