@@ -18,10 +18,12 @@ func ApplyRuleA0Level(
 		return nil, err
 	}
 
-	rows, err = applyRuleA0LevelRule1(ctx, rows)
-	if err != nil {
-		return nil, err
-	}
+	/*
+		rows, err = applyRuleA0LevelRule1(ctx, rows)
+		if err != nil {
+			return nil, err
+		}
+	*/
 
 	return rows, nil
 }
@@ -49,7 +51,8 @@ func applyRuleA0LevelRule0(
 			continue
 		}
 
-		matches := activityCoupleRegex.FindStringSubmatch(row.activityRawString)
+		originalActivityName := row.activityRawString
+		matches := activityCoupleRegex.FindStringSubmatch(originalActivityName)
 		if len(matches) != 3 {
 			continue
 		}
@@ -103,10 +106,10 @@ func applyRuleA0LevelRule0(
 		// - different room
 		// - rooms are museo & planetario (or inverse)
 		if row.RoomCode == "museo" {
-			row.activityRawString = strings.TrimSpace(matches[1])
+			row.activityRawString = originalActivityName
 			matchingRow.activityRawString = strings.TrimSpace(matches[2])
 		} else {
-			matchingRow.activityRawString = strings.TrimSpace(matches[1])
+			matchingRow.activityRawString = originalActivityName
 			row.activityRawString = strings.TrimSpace(matches[2])
 		}
 
@@ -151,10 +154,10 @@ func applyRuleA0LevelRule1(
 			}
 
 			similarity := strutil.Similarity(cleanedActivityName, otherKey, stringSimilarityMetrics)
-			if similarity >= 0.85 {
+			if similarity >= 0.90 {
 				row.activityRawString = otherName
-				logger.Infof("normalized activity %v name from [%s] to [%s]",
-					row.ID, rows[i].activityRawString, row.activityRawString)
+				logger.Infof("normalized activity %v name from [%s] to [%s] (confidence: %v)",
+					row.ID, rows[i].activityRawString, row.activityRawString, similarity)
 				rows[i] = row
 				rewrote = true
 				break

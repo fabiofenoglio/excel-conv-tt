@@ -85,6 +85,14 @@ func main() {
 	if err != nil {
 		fail(err)
 		return
+	} else {
+		if sentryAvailable {
+			sentry.WithScope(func(scope *sentry.Scope) {
+				scope.SetLevel(sentry.LevelInfo)
+				scope.SetExtra("arguments", args)
+				sentry.CaptureMessage("successful execution")
+			})
+		}
 	}
 }
 

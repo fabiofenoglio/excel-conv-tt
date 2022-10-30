@@ -84,8 +84,8 @@ jobs:
       - name: Fill env configuration with Sentry env
         uses: jacobtomlinson/gha-find-replace@v2
         with:
-          find: "__SENTRY_ENV__"
-          replace: "${{ secrets.SENTRY_ENV }}"
+          find: "___ENV___"
+          replace: "${{ secrets.ENV }}"
           regex: false
           include: "./config/env.go"
 
