@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"os"
 	"time"
 
@@ -78,7 +79,13 @@ func main() {
 		log.SetOutput(os.Stderr)
 	}
 
-	err = runWithPanicProtection(args, envConfig, log)
+	// parse the specified input file
+	ctx := context.Background()
+	span := sentry.StartSpan(ctx, "process",
+		sentry.TransactionName(fmt.Sprintf("process: %s", args.PositionalArgs.InputFile)))
+	defer span.Finish()
+
+	err = runWithPanicProtection(span.Context(), args, envConfig, log)
 	if err != nil {
 		fail(err)
 		return
@@ -93,7 +100,7 @@ func main() {
 	}
 }
 
-func runWithPanicProtection(args config.Args, envConfig config.EnvConfig, logger *logrus.Logger) error {
+func runWithPanicProtection(ctx context.Context, args config.Args, envConfig config.EnvConfig, logger *logrus.Logger) error {
 
 	err := func() (executionErr error) {
 		defer func() {
@@ -101,21 +108,18 @@ func runWithPanicProtection(args config.Args, envConfig config.EnvConfig, logger
 				executionErr = errors.Errorf("[panic] %v", recovered)
 			}
 		}()
-		executionErr = run(args, envConfig, logger)
+		executionErr = run(ctx, args, envConfig, logger)
 		return
 	}()
 
 	return err
 }
 
-func run(args config.Args, _ config.EnvConfig, log *logrus.Logger) error {
+func run(ctx context.Context, args config.Args, _ config.EnvConfig, log *logrus.Logger) error {
 	input := args.PositionalArgs.InputFile
 	if input == "" {
 		return errors.New("missing input file")
 	}
-
-	// parse the specified input file
-	ctx := context.Background()
 
 	workflowContext := config.WorkflowContext{
 		Context: ctx,
@@ -125,19 +129,25 @@ func run(args config.Args, _ config.EnvConfig, log *logrus.Logger) error {
 		},
 	}
 
+	span := sentry.StartSpan(ctx, "read")
 	readerOutput, err := reader.Execute(workflowContext, reader.Input{
 		FilePath: input,
 	})
+	span.Finish()
 	if err != nil {
 		return err
 	}
 
+	span = sentry.StartSpan(ctx, "parse")
 	parserOutput, err := parser2.Execute(workflowContext, readerOutput)
+	span.Finish()
 	if err != nil {
 		return err
 	}
 
+	span = sentry.StartSpan(ctx, "aggregate")
 	aggregatorOutput, err := aggregator2.Execute(workflowContext, parserOutput)
+	span.Finish()
 	if err != nil {
 		return err
 	}
@@ -147,30 +157,36 @@ func run(args config.Args, _ config.EnvConfig, log *logrus.Logger) error {
 		return err
 	}
 
+	span = sentry.StartSpan(ctx, "write")
 	outputFile := writer.ComputeDefaultOutputFile(input)
 	bytes, err := writer.Write(workflowContext, aggregatorOutput, parserOutput.Anagraphics)
-
+	span.Finish()
 	if err != nil {
 		return errors.Wrap(err, "error running writer")
 	}
 
-	if args.StdOut {
-		f := bufio.NewWriter(os.Stdout)
-		_, err := f.Write(bytes)
-		if err != nil {
-			return errors.Wrap(err, "error writing to stdout")
+	err = func() error {
+		span = sentry.StartSpan(ctx, "dump")
+		defer span.Finish()
+		if args.StdOut {
+			f := bufio.NewWriter(os.Stdout)
+			_, err := f.Write(bytes)
+			if err != nil {
+				return errors.Wrap(err, "error writing to stdout")
+			}
+			_ = f.Flush()
+		} else {
+			log.Debugf("writing to output file %s", outputFile)
+			err = os.WriteFile(outputFile, bytes, 0755)
+			if err != nil {
+				return errors.Wrapf(err, "error saving to output file %s", outputFile)
+			}
+			log.Infof("saved to output file %s", outputFile)
 		}
-		_ = f.Flush()
-
-	} else {
-
-		log.Debugf("writing to output file %s", outputFile)
-		err = os.WriteFile(outputFile, bytes, 0755)
-		if err != nil {
-			return errors.Wrapf(err, "error saving to output file %s", outputFile)
-		}
-		log.Infof("saved to output file %s", outputFile)
-
+		return nil
+	}()
+	if err != nil {
+		return err
 	}
 
 	return nil
