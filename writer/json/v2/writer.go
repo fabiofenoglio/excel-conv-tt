@@ -14,7 +14,7 @@ import (
 
 type WriterImpl struct{}
 
-var _ writer.WriterV2 = &WriterImpl{}
+var _ writer.Writer = &WriterImpl{}
 
 func (w *WriterImpl) Write(ctx config.WorkflowContext, parsed aggregator2.Output, anagraphicsRef *parser2.OutputAnagraphics) ([]byte, error) {
 	log := ctx.Logger

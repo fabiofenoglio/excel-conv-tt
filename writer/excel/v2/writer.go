@@ -32,7 +32,7 @@ type WriteContext struct {
 
 type WriterImpl struct{}
 
-var _ writer.WriterV2 = &WriterImpl{}
+var _ writer.Writer = &WriterImpl{}
 
 func (w *WriterImpl) ComputeDefaultOutputFile(inputFile string) string {
 	outPath := filepath.Dir(inputFile)

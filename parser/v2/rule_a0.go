@@ -128,6 +128,7 @@ func applyRuleA0LevelRule0(
 	return rows, nil
 }
 
+//nolint:unused,deadcode
 func applyRuleA0LevelRule1(
 	ctx config.WorkflowContext,
 	rows []Row,

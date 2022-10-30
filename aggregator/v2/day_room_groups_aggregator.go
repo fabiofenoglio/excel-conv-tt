@@ -38,7 +38,7 @@ func AggregateByRooomGroupsOnSameActivity(
 
 	for i1, group := range grouped {
 		for i2, g := range group.RoomsSchedule {
-			for i3, _ := range g.GroupedActivities {
+			for i3 := range g.GroupedActivities {
 				grouped[i1].RoomsSchedule[i2].GroupedActivities[i3].ID = cnt
 				cnt++
 			}

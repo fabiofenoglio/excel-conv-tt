@@ -7,10 +7,8 @@ import (
 	"time"
 
 	aggregator2 "github.com/fabiofenoglio/excelconv/aggregator/v2"
-	"github.com/fabiofenoglio/excelconv/parser/v1"
 	parser2 "github.com/fabiofenoglio/excelconv/parser/v2"
 	"github.com/fabiofenoglio/excelconv/reader/v2"
-	excelwriter "github.com/fabiofenoglio/excelconv/writer/excel/v1"
 	excelwriter2 "github.com/fabiofenoglio/excelconv/writer/excel/v2"
 	"github.com/getsentry/sentry-go"
 	"github.com/jessevdk/go-flags"
@@ -20,7 +18,6 @@ import (
 	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/logger"
 	"github.com/fabiofenoglio/excelconv/writer"
-	jsonwriter "github.com/fabiofenoglio/excelconv/writer/json"
 	jsonwriter2 "github.com/fabiofenoglio/excelconv/writer/json/v2"
 )
 
@@ -104,81 +101,11 @@ func runWithPanicProtection(args config.Args, envConfig config.EnvConfig, logger
 				executionErr = errors.Errorf("[panic] %v", recovered)
 			}
 		}()
-		if args.Legacy {
-			executionErr = runLegacy(args)
-		} else {
-			executionErr = run(args, envConfig, logger)
-		}
+		executionErr = run(args, envConfig, logger)
 		return
 	}()
 
 	return err
-}
-
-func runLegacy(args config.Args) error {
-	input := args.PositionalArgs.InputFile
-	if input == "" {
-		return errors.New("missing input file")
-	}
-	log := logger.GetLogger()
-	if args.Verbose {
-		log.SetLevel(logrus.DebugLevel)
-	}
-	if args.StdOut {
-		log.SetOutput(os.Stderr)
-	}
-
-	// parse the specified input file
-
-	parsed, err := parser.Parse(input, args, log)
-	if err != nil {
-		return errors.Wrap(err, "error reading from input file")
-	}
-	log.Infof("found %d rows", len(parsed.Rows))
-
-	writer, err := pickWriterLegacy(args)
-	if err != nil {
-		return err
-	}
-
-	outputFile := writer.ComputeDefaultOutputFile(input)
-	bytes, err := writer.Write(parsed, args, log)
-
-	if err != nil {
-		return errors.Wrap(err, "error running writer")
-	}
-
-	if args.StdOut {
-		f := bufio.NewWriter(os.Stdout)
-		_, err := f.Write(bytes)
-		if err != nil {
-			return errors.Wrap(err, "error writing to stdout")
-		}
-		_ = f.Flush()
-
-	} else {
-
-		log.Debugf("writing to output file %s", outputFile)
-		err = os.WriteFile(outputFile, bytes, 0755)
-		if err != nil {
-			return errors.Wrapf(err, "error saving to output file %s", outputFile)
-		}
-		log.Infof("saved to output file %s", outputFile)
-
-	}
-
-	return nil
-}
-
-func pickWriterLegacy(arg config.Args) (writer.Writer, error) {
-	switch arg.Format {
-	case "excel":
-		return &excelwriter.WriterImpl{}, nil
-	case "json":
-		return &jsonwriter.WriterImpl{}, nil
-	}
-
-	return nil, errors.Errorf("%s is not a valid output format (no writer available)", arg.Format)
 }
 
 func run(args config.Args, _ config.EnvConfig, log *logrus.Logger) error {
@@ -249,7 +176,7 @@ func run(args config.Args, _ config.EnvConfig, log *logrus.Logger) error {
 	return nil
 }
 
-func pickWriter(arg config.Args) (writer.WriterV2, error) {
+func pickWriter(arg config.Args) (writer.Writer, error) {
 	switch arg.Format {
 	case "excel":
 		return &excelwriter2.WriterImpl{}, nil
