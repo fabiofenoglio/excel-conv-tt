@@ -8,10 +8,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-const (
-	envPrefix = "EXCELCONV_"
-)
-
 var (
 	injected = map[string]string{
 		"SENTRY_DSN": "___SENTRY_DSN___",
@@ -46,7 +42,7 @@ func Get() (EnvConfig, error) {
 func get(key string) (string, error) {
 	v := getOrDefault(key, "")
 	if v == "" {
-		return "", errors.New("missing configuration value: " + key + " or (" + envPrefix + key + " from environment)")
+		return "", errors.New("missing configuration value: " + key)
 	}
 	return v, nil
 }
@@ -54,7 +50,7 @@ func get(key string) (string, error) {
 func getOrDefault(key string, defaultValue string) string {
 	injectedValue := injected[key]
 	if injectedValue == "" || strings.HasPrefix(injectedValue, "___") {
-		injectedValue = os.Getenv(envPrefix + key)
+		injectedValue = os.Getenv(key)
 	}
 	if injectedValue == "" {
 		return defaultValue

@@ -76,10 +76,10 @@ jobs:
       - name: Fill env configuration with Sentry DSN
         uses: jacobtomlinson/gha-find-replace@v2
         with:
-          find: "__SENTRY_DSN__"
+          find: "___SENTRY_DSN___"
           replace: "${{ secrets.SENTRY_DSN }}"
           regex: false
-          include: "./config/env.go"
+          include: "config/**.go"
 
       - name: Fill env configuration with Sentry env
         uses: jacobtomlinson/gha-find-replace@v2
@@ -87,7 +87,7 @@ jobs:
           find: "___ENV___"
           replace: "${{ secrets.ENV }}"
           regex: false
-          include: "./config/env.go"
+          include: "config/**.go"
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v3
