@@ -130,7 +130,7 @@ func run(ctx context.Context, args config.Args, _ config.EnvConfig, log *logrus.
 	}
 
 	span := sentry.StartSpan(ctx, "read")
-	readerOutput, err := reader.Execute(workflowContext, reader.Input{
+	readerOutput, err := reader.Execute(workflowContext.ForContext(span.Context()), reader.Input{
 		FilePath: input,
 	})
 	span.Finish()
@@ -139,14 +139,14 @@ func run(ctx context.Context, args config.Args, _ config.EnvConfig, log *logrus.
 	}
 
 	span = sentry.StartSpan(ctx, "parse")
-	parserOutput, err := parser2.Execute(workflowContext, readerOutput)
+	parserOutput, err := parser2.Execute(workflowContext.ForContext(span.Context()), readerOutput)
 	span.Finish()
 	if err != nil {
 		return err
 	}
 
 	span = sentry.StartSpan(ctx, "aggregate")
-	aggregatorOutput, err := aggregator2.Execute(workflowContext, parserOutput)
+	aggregatorOutput, err := aggregator2.Execute(workflowContext.ForContext(span.Context()), parserOutput)
 	span.Finish()
 	if err != nil {
 		return err
@@ -159,7 +159,7 @@ func run(ctx context.Context, args config.Args, _ config.EnvConfig, log *logrus.
 
 	span = sentry.StartSpan(ctx, "write")
 	outputFile := writer.ComputeDefaultOutputFile(input)
-	bytes, err := writer.Write(workflowContext, aggregatorOutput, parserOutput.Anagraphics)
+	bytes, err := writer.Write(workflowContext.ForContext(span.Context()), aggregatorOutput, parserOutput.Anagraphics)
 	span.Finish()
 	if err != nil {
 		return errors.Wrap(err, "error running writer")

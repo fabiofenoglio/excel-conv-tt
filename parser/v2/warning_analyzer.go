@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/fabiofenoglio/excelconv/config"
@@ -29,7 +28,6 @@ func emitWarningsForRow(ctx config.WorkflowContext, row Row, anagraphicsRef *Out
 
 	activity := anagraphicsRef.Activities[row.ActivityCode]
 	room := anagraphicsRef.Rooms[row.RoomCode]
-	group := anagraphicsRef.VisitingGroups[row.VisitingGroupCode]
 
 	if strings.Contains(activity.Name, "??") {
 		out = append(out, Warning{
@@ -56,13 +54,6 @@ func emitWarningsForRow(ctx config.WorkflowContext, row Row, anagraphicsRef *Out
 		out = append(out, Warning{
 			Code:    "non-it-lang",
 			Message: "ATTIVITA' PREVISTA IN LINGUA: " + activity.Language,
-		})
-	}
-
-	if group.Composition.NumFree > 0 {
-		out = append(out, Warning{
-			Code:    "free-admission-presence",
-			Message: fmt.Sprintf("SONO PRESENTI %d INGRESSI GRATUITI", group.Composition.NumFree),
 		})
 	}
 

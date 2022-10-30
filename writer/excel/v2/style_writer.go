@@ -76,7 +76,7 @@ func applyStyleToBox(f *excelize.File, style *RegisteredStyleV2, box excel.CellB
 	if box.Height() > 2 && box.Width() > 2 {
 		if e := f.SetCellStyle(
 			sn,
-			box.BottomLeft().AtRight(1).AtBottom(1).Code(),
+			box.TopLeft().AtRight(1).AtBottom(1).Code(),
 			box.BottomRight().AtLeft(1).AtTop(1).Code(),
 			style.Middle(),
 		); e != nil {

@@ -8,6 +8,7 @@ import (
 
 	aggregator2 "github.com/fabiofenoglio/excelconv/aggregator/v2"
 	parser2 "github.com/fabiofenoglio/excelconv/parser/v2"
+	"github.com/getsentry/sentry-go"
 	"github.com/pkg/errors"
 	"github.com/xuri/excelize/v2"
 
@@ -96,11 +97,13 @@ func (w *WriterImpl) Write(ctx config.WorkflowContext, parsed aggregator2.Output
 	daysGridCursor := excel.NewCellWithTracker(startingCell)
 	aggregateDayWriter := DayGridWriteResult{}
 
-	for _, groupByDay := range groupedByStartDate {
+	for i, groupByDay := range groupedByStartDate {
+		span := sentry.StartSpan(ctx.Context, fmt.Sprintf("write day %d", i))
 		log.Debugf("writing day %v", groupByDay.Day)
 
 		dayWriteResult, err := writeDayWithDetails(ctx, wc, groupByDay, daysGridCursor)
 		if err != nil {
+			span.Finish()
 			return nil, errors.Wrap(err, "error writing day")
 		}
 		aggregateDayWriter.Aggregate(dayWriteResult)
@@ -109,29 +112,38 @@ func (w *WriterImpl) Write(ctx config.WorkflowContext, parsed aggregator2.Output
 		daysGridCursor.
 			MoveRow(startingCell.Row()).
 			MoveColumn(daysGridCursor.CoveredArea().RightColumn() + 1)
+
+		span.Finish()
 	}
 
 	if false { // do not write operators legenda
+		span := sentry.StartSpan(ctx.Context, "write operator legenda")
 		daysGridCursor.MoveAtRightTopOfCoveredArea()
-		{
-			// write operator colours
-			err := writeOperatorsLegenda(wc, daysGridCursor, anagraphicsRef.Operators)
-			if err != nil {
-				return nil, errors.Wrap(err, "error writing operator colors")
-			}
+		// write operator colours
+		err := writeOperatorsLegenda(wc, daysGridCursor, anagraphicsRef.Operators)
+		if err != nil {
+			span.Finish()
+			return nil, errors.Wrap(err, "error writing operator colors")
 		}
+		span.Finish()
 	}
 
+	span := sentry.StartSpan(ctx.Context, "write annotations")
 	for _, groupByDay := range groupedByStartDate {
 		if err := writeAnnotationsOnActivities(ctx, wc, groupByDay, aggregateDayWriter); err != nil {
+			span.Finish()
 			return nil, errors.Wrap(err, "error writing activity annotations")
 		}
 	}
+	span.Finish()
 
+	span = sentry.StartSpan(ctx.Context, "write to buffer")
 	out, err := f.WriteToBuffer()
 	if err != nil {
+		span.Finish()
 		return nil, errors.Wrap(err, "error writing output to buffer")
 	}
+	span.Finish()
 	return out.Bytes(), nil
 }
 

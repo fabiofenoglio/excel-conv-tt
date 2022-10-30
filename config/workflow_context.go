@@ -15,3 +15,11 @@ type WorkflowContext struct {
 type WorkflowContextConfig struct {
 	EnableMissingOperatorsWarning bool
 }
+
+func (c *WorkflowContext) ForContext(ctx context.Context) WorkflowContext {
+	return WorkflowContext{
+		Context: ctx,
+		Logger:  c.Logger,
+		Config:  c.Config,
+	}
+}
