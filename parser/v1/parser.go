@@ -9,6 +9,7 @@ import (
 	_ "time/tzdata"
 
 	"github.com/fabiofenoglio/excelconv/reader/v1"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/fabiofenoglio/excelconv/config"
@@ -28,7 +29,7 @@ func Parse(input string, args config.Args, log *logrus.Logger) (model.ParsedData
 
 	excelRows, err := reader.ReadFromFile(input, log)
 	if err != nil {
-		return zero, fmt.Errorf("error reading from file: %w", err)
+		return zero, errors.Wrap(err, "error reading from file")
 	}
 
 	results := make([]model.ParsedRow, 0, len(excelRows))
@@ -38,7 +39,7 @@ func Parse(input string, args config.Args, log *logrus.Logger) (model.ParsedData
 		if err != nil {
 			errMsg := fmt.Sprintf("error validating row %d", i)
 			log.WithError(err).Errorf(errMsg+": %s", err.Error())
-			return zero, fmt.Errorf(errMsg+": %w", err)
+			return zero, errors.Wrap(err, errMsg)
 		}
 
 		filterResult := filter(row)
@@ -50,7 +51,7 @@ func Parse(input string, args config.Args, log *logrus.Logger) (model.ParsedData
 		if err != nil {
 			errMsg := fmt.Sprintf("error parsing row %d", i)
 			log.WithError(err).Errorf(errMsg+": %s", err.Error())
-			return zero, fmt.Errorf(errMsg+": %w", err)
+			return zero, errors.Wrap(err, errMsg)
 		}
 
 		results = append(results, parsed)
@@ -121,7 +122,7 @@ func parseRow(r reader.ExcelRow, args config.Args) (model.ParsedRow, error) {
 
 	data, err := time.Parse(layoutDateOnlyInITFormat, r.Data)
 	if err != nil {
-		return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' una data valida nel formato 'GG/MM/YYYY'", r.Data)
+		return model.ParsedRow{}, errors.Errorf("il valore '%s' non e' una data valida nel formato 'GG/MM/YYYY'", r.Data)
 	}
 
 	orari := strings.Split(r.Orario, "-")
@@ -135,7 +136,7 @@ func parseRow(r reader.ExcelRow, args config.Args) (model.ParsedRow, error) {
 		start, err = time.Parse(layoutTimeOnlyWithHours, v)
 	}
 	if err != nil {
-		return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' un orario di inizio valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
+		return model.ParsedRow{}, errors.Errorf("il valore '%s' non e' un orario di inizio valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
 	}
 
 	v = strings.TrimSpace(orari[1])
@@ -147,7 +148,7 @@ func parseRow(r reader.ExcelRow, args config.Args) (model.ParsedRow, error) {
 		start, err = time.Parse(layoutTimeOnlyWithHours, v)
 	}
 	if err != nil {
-		return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' un orario di fine valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
+		return model.ParsedRow{}, errors.Errorf("il valore '%s' non e' un orario di fine valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
 	}
 
 	start = time.Date(data.Year(), data.Month(), data.Day(), start.Hour(), start.Minute(), start.Second(), 0, localTimeZone)
@@ -167,19 +168,19 @@ func parseRow(r reader.ExcelRow, args config.Args) (model.ParsedRow, error) {
 	if r.Paganti != "" {
 		numPaganti, err = strconv.Atoi(r.Paganti)
 		if err != nil {
-			return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' un numero valido", r.Paganti)
+			return model.ParsedRow{}, errors.Wrapf(err, "il valore '%s' non e' un numero valido", r.Paganti)
 		}
 	}
 	if r.Gratuiti != "" {
 		numGratuiti, err = strconv.Atoi(r.Gratuiti)
 		if err != nil {
-			return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' un numero valido", r.Gratuiti)
+			return model.ParsedRow{}, errors.Wrapf(err, "il valore '%s' non e' un numero valido", r.Gratuiti)
 		}
 	}
 	if r.Accompagnatori != "" {
 		numAccompagnatori, err = strconv.Atoi(r.Accompagnatori)
 		if err != nil {
-			return model.ParsedRow{}, fmt.Errorf("il valore '%s' non e' un numero valido", r.Accompagnatori)
+			return model.ParsedRow{}, errors.Wrapf(err, "il valore '%s' non e' un numero valido", r.Accompagnatori)
 		}
 	}
 

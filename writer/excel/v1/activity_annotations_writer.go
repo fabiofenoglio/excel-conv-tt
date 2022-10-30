@@ -1,9 +1,9 @@
 package excel
 
 import (
-	"fmt"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/fabiofenoglio/excelconv/aggregator/byday"
@@ -42,11 +42,11 @@ func writeAnnotationsOnActivities(c WriteContext, groupByDay byday.GroupedByDay,
 			maxHeight: 45,
 		})
 		if err != nil {
-			return fmt.Errorf("error looking up spaces to write annotations: %w", err)
+			return errors.Wrap(err, "error looking up spaces to write annotations")
 		}
 
 		if len(foundSpaces) == 0 {
-			// TODO do something else,
+			// may do something else,
 			// like for instance adding to the cell text and increasing the column width
 			continue
 		}

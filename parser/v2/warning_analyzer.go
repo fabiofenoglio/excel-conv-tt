@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/fabiofenoglio/excelconv/config"
+	"github.com/pkg/errors"
 )
 
 func EmitWarnings(ctx config.WorkflowContext, rows []Row, anagraphicsRef *OutputAnagraphics) ([]Row, error) {
@@ -14,7 +15,7 @@ func EmitWarnings(ctx config.WorkflowContext, rows []Row, anagraphicsRef *Output
 		outCopy := row
 		warnings, err := emitWarningsForRow(ctx, outCopy, anagraphicsRef)
 		if err != nil {
-			return nil, fmt.Errorf("errore nell'analisi di coerenza: %w", err)
+			return nil, errors.Wrap(err, "errore nell'analisi di coerenza")
 		}
 		outCopy.Warnings = warnings
 		out = append(out, outCopy)

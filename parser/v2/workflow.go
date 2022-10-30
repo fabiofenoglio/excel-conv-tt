@@ -1,10 +1,9 @@
 package parser
 
 import (
-	"fmt"
-
 	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/reader/v2"
+	"github.com/pkg/errors"
 )
 
 func Execute(ctx config.WorkflowContext, rawInput reader.Output) (Output, error) {
@@ -14,27 +13,27 @@ func Execute(ctx config.WorkflowContext, rawInput reader.Output) (Output, error)
 
 	rowsWithRooms, rooms, err := HydrateRooms(ctx, input.Rows)
 	if err != nil {
-		return Output{}, fmt.Errorf("errore nella lettura delle aule: %w", err)
+		return Output{}, errors.Wrap(err, "errore nella lettura delle aule")
 	}
 
 	rowsWithOperators, operators, err := HydrateOperators(ctx, rowsWithRooms)
 	if err != nil {
-		return Output{}, fmt.Errorf("errore nella lettura degli educatori: %w", err)
+		return Output{}, errors.Wrap(err, "errore nella lettura degli educatori")
 	}
 
 	rowsWithGroups, groups, schools, schoolClasses, err := HydrateGroups(ctx, rowsWithOperators)
 	if err != nil {
-		return Output{}, fmt.Errorf("errore nella lettura dei gruppi scuola: %w", err)
+		return Output{}, errors.Wrap(err, "errore nella lettura dei gruppi scuola")
 	}
 
 	afterRuleA0, err := ApplyRuleA0Level(ctx, rowsWithGroups)
 	if err != nil {
-		return Output{}, fmt.Errorf("errore nell'applicazione delle regole di livello A0: %w", err)
+		return Output{}, errors.Wrap(err, "errore nell'applicazione delle regole di livello A0")
 	}
 
 	rowsWithActivities, activities, activityTypes, err := HydrateActivities(ctx, afterRuleA0)
 	if err != nil {
-		return Output{}, fmt.Errorf("errore nella lettura delle attività: %w", err)
+		return Output{}, errors.Wrap(err, "errore nella lettura delle attività")
 	}
 
 	// build anagraphics index for O(1) ammortized lookup
@@ -73,7 +72,7 @@ func Execute(ctx config.WorkflowContext, rawInput reader.Output) (Output, error)
 
 	rowsWithWarnings, err := EmitWarnings(ctx, rowsWithActivities, &anagraphics)
 	if err != nil {
-		return Output{}, fmt.Errorf("errore nella ricerca dei warning: %w", err)
+		return Output{}, errors.Wrap(err, "errore nella ricerca dei warning")
 	}
 
 	out := Output{

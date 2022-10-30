@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/xuri/excelize/v2"
 
@@ -101,7 +102,7 @@ func (w *WriterImpl) Write(parsed model.ParsedData, args config.Args, log *logru
 
 		dayWriteResult, err := writeDayWithDetails(wc, groupByDay, daysGridCursor, log)
 		if err != nil {
-			return nil, fmt.Errorf("error writing day: %w", err)
+			return nil, errors.Wrap(err, "error writing day")
 		}
 		aggregateDayWriter.Aggregate(dayWriteResult)
 
@@ -117,21 +118,21 @@ func (w *WriterImpl) Write(parsed model.ParsedData, args config.Args, log *logru
 			// write operator colours
 			err := writeOperatorsLegenda(wc, daysGridCursor, parsed.Operators)
 			if err != nil {
-				return nil, fmt.Errorf("error writing operator colors: %w", err)
+				return nil, errors.Wrap(err, "error writing operator colors")
 			}
 		}
 	}
 
 	for _, groupByDay := range groupedByStartDate {
 		if err := writeAnnotationsOnActivities(wc, groupByDay, aggregateDayWriter, log); err != nil {
-			return nil, fmt.Errorf("error writing activity annotations: %w", err)
+			return nil, errors.Wrap(err, "error writing activity annotations")
 		}
 	}
 
 	// Save spreadsheet by the given path.
 	out, err := f.WriteToBuffer()
 	if err != nil {
-		return nil, fmt.Errorf("error writing output to buffer: %w", err)
+		return nil, errors.Wrap(err, "error writing output to buffer")
 	}
 	return out.Bytes(), nil
 }
@@ -146,7 +147,7 @@ func writeDayWithDetails(c WriteContext, groupByDay byday.GroupedByDay, startCel
 	{
 		outFromDayGridWriter, err := writeDayGrid(c, groupByDay, tracker, log)
 		if err != nil {
-			return zero, fmt.Errorf("error writing row: %w", err)
+			return zero, errors.Wrap(err, "error writing row")
 		}
 		out = outFromDayGridWriter
 	}
@@ -170,7 +171,7 @@ func writeDayWithDetails(c WriteContext, groupByDay byday.GroupedByDay, startCel
 
 		err := writeSchoolsForDay(c, schoolGroupsForThisDay, tracker)
 		if err != nil {
-			return zero, fmt.Errorf("error writing schools for day: %w", err)
+			return zero, errors.Wrap(err, "error writing schools for day")
 		}
 	}
 
@@ -180,7 +181,7 @@ func writeDayWithDetails(c WriteContext, groupByDay byday.GroupedByDay, startCel
 	{
 		err := writePlaceholdersForDay(c, tracker)
 		if err != nil {
-			return zero, fmt.Errorf("error writing placeholders for OOD: %w", err)
+			return zero, errors.Wrap(err, "error writing placeholders for OOD")
 		}
 	}
 

@@ -1,7 +1,7 @@
 package excel
 
 import (
-	"errors"
+	"github.com/pkg/errors"
 
 	"github.com/fabiofenoglio/excelconv/excel"
 )

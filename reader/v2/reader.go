@@ -1,11 +1,12 @@
 package reader
 
 import (
-	"errors"
 	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 
 	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/xuri/excelize/v2"
@@ -19,7 +20,7 @@ func ReadFromFile(ctx config.WorkflowContext, input string) ([]Row, error) {
 
 	f, err := excelize.OpenFile(input)
 	if err != nil {
-		return nil, fmt.Errorf("error opening input file: %w", err)
+		return nil, errors.Wrap(err, "error opening input file")
 	}
 
 	defer func() {
@@ -55,7 +56,7 @@ func ReadFromFile(ctx config.WorkflowContext, input string) ([]Row, error) {
 	for {
 		cell, err := f.GetCellValue(currentHeaderCell.SheetName(), currentHeaderCell.Code())
 		if err != nil {
-			return nil, fmt.Errorf("error reading header cell %s: %w", currentHeaderCell.Code(), err)
+			return nil, errors.Wrapf(err, "error reading header cell %s", currentHeaderCell.Code())
 		}
 		cellCode := stringToCode(cell)
 		if cellCode == "" {
@@ -133,7 +134,7 @@ func ReadFromFile(ctx config.WorkflowContext, input string) ([]Row, error) {
 
 			cellContent, err := f.GetCellValue(cell.SheetName(), cell.Code())
 			if err != nil {
-				return nil, fmt.Errorf("error reading content cell %v: %w", cell, err)
+				return nil, errors.Wrapf(err, "error reading content cell %v", cell)
 			}
 
 			trimmed := strings.TrimSpace(cellContent)

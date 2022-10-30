@@ -2,10 +2,10 @@ package json
 
 import (
 	"encoding/json"
-	"fmt"
 	"path/filepath"
 	"strings"
 
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/fabiofenoglio/excelconv/config"
@@ -28,7 +28,7 @@ func (w *WriterImpl) Write(parsed model.ParsedData, args config.Args, log *logru
 
 	serialized, err := json.MarshalIndent(out, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing data as JSON: %w", err)
+		return nil, errors.Wrap(err, "error serializing data as JSON")
 	}
 
 	return serialized, nil

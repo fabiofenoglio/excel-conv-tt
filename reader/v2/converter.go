@@ -1,13 +1,13 @@
 package reader
 
 import (
-	"fmt"
 	"strconv"
 	"strings"
 	"time"
 	_ "time/tzdata"
 
 	"github.com/fabiofenoglio/excelconv/config"
+	"github.com/pkg/errors"
 )
 
 const (
@@ -23,7 +23,7 @@ func Convert(rows []Row) ([]Row, error) {
 	for _, row := range rows {
 		converted, err := convertRow(row)
 		if err != nil {
-			return nil, fmt.Errorf("errore nella riga %d: %w", row.rowNumber, err)
+			return nil, errors.Wrapf(err, "errore nella riga %d", row.rowNumber)
 		}
 		out = append(out, converted)
 	}
@@ -46,19 +46,19 @@ func convertRow(r Row) (Row, error) {
 	if r.NumPayingRawString != "" {
 		r.NumPaying, err = strconv.Atoi(r.NumPayingRawString)
 		if err != nil {
-			return Row{}, fmt.Errorf("il valore del numero paganti '%s' non e' una numero valido", r.NumPayingRawString)
+			return Row{}, errors.Wrapf(err, "il valore del numero paganti '%s' non e' una numero valido", r.NumPayingRawString)
 		}
 	}
 	if r.NumAccompanyingRawString != "" {
 		r.NumAccompanying, err = strconv.Atoi(r.NumAccompanyingRawString)
 		if err != nil {
-			return Row{}, fmt.Errorf("il valore del numero accompagnatori '%s' non e' una numero valido", r.NumAccompanyingRawString)
+			return Row{}, errors.Wrapf(err, "il valore del numero accompagnatori '%s' non e' una numero valido", r.NumAccompanyingRawString)
 		}
 	}
 	if r.NumFreeRawString != "" {
 		r.NumFree, err = strconv.Atoi(r.NumFreeRawString)
 		if err != nil {
-			return Row{}, fmt.Errorf("il valore del numero gratuiti '%s' non e' una numero valido", r.NumFreeRawString)
+			return Row{}, errors.Wrapf(err, "il valore del numero gratuiti '%s' non e' una numero valido", r.NumFreeRawString)
 		}
 	}
 
@@ -70,7 +70,7 @@ func getStartAndEndTimes(r Row) (time.Time, time.Time, time.Time, error) {
 
 	data, err := time.Parse(layoutDateOnlyInITFormat, r.DateRawString)
 	if err != nil {
-		return time.Time{}, time.Time{}, time.Time{}, fmt.Errorf("il valore '%s' non e' una data valida nel formato 'GG/MM/YYYY'", r.DateRawString)
+		return time.Time{}, time.Time{}, time.Time{}, errors.Wrapf(err, "il valore '%s' non e' una data valida nel formato 'GG/MM/YYYY'", r.DateRawString)
 	}
 
 	dataHalfDay := time.Date(data.Year(), data.Month(), data.Day(), 12, 0, 0, 0, localTimeZone)
@@ -86,7 +86,8 @@ func getStartAndEndTimes(r Row) (time.Time, time.Time, time.Time, error) {
 		start, err = time.Parse(layoutTimeOnlyWithHours, v)
 	}
 	if err != nil {
-		return time.Time{}, time.Time{}, time.Time{}, fmt.Errorf("il valore '%s' non e' un orario di inizio valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
+		return time.Time{}, time.Time{}, time.Time{}, errors.Wrapf(err,
+			"il valore '%s' non e' un orario di inizio valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
 	}
 
 	v = strings.TrimSpace(orari[1])
@@ -98,7 +99,8 @@ func getStartAndEndTimes(r Row) (time.Time, time.Time, time.Time, error) {
 		start, err = time.Parse(layoutTimeOnlyWithHours, v)
 	}
 	if err != nil {
-		return time.Time{}, time.Time{}, time.Time{}, fmt.Errorf("il valore '%s' non e' un orario di fine valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
+		return time.Time{}, time.Time{}, time.Time{}, errors.Wrapf(err,
+			"il valore '%s' non e' un orario di fine valido nei formati 'HH:MM', 'HH:MM:SS' o 'HH'", v)
 	}
 
 	start = time.Date(data.Year(), data.Month(), data.Day(), start.Hour(), start.Minute(), start.Second(), 0, localTimeZone)

@@ -2,7 +2,6 @@ package json
 
 import (
 	"encoding/json"
-	"fmt"
 	"path/filepath"
 	"strings"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/fabiofenoglio/excelconv/config"
 	parser2 "github.com/fabiofenoglio/excelconv/parser/v2"
 	"github.com/fabiofenoglio/excelconv/writer"
+	"github.com/pkg/errors"
 )
 
 type WriterImpl struct{}
@@ -28,7 +28,7 @@ func (w *WriterImpl) Write(ctx config.WorkflowContext, parsed aggregator2.Output
 
 	serialized, err := json.MarshalIndent(out, "", "  ")
 	if err != nil {
-		return nil, fmt.Errorf("error serializing data as JSON: %w", err)
+		return nil, errors.Wrap(err, "error serializing data as JSON")
 	}
 
 	return serialized, nil

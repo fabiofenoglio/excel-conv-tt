@@ -3,8 +3,6 @@ package main
 import (
 	"bufio"
 	"context"
-	"errors"
-	"fmt"
 	"os"
 	"time"
 
@@ -14,7 +12,9 @@ import (
 	"github.com/fabiofenoglio/excelconv/reader/v2"
 	excelwriter "github.com/fabiofenoglio/excelconv/writer/excel/v1"
 	excelwriter2 "github.com/fabiofenoglio/excelconv/writer/excel/v2"
+	"github.com/getsentry/sentry-go"
 	"github.com/jessevdk/go-flags"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 
 	"github.com/fabiofenoglio/excelconv/config"
@@ -25,32 +25,81 @@ import (
 )
 
 func main() {
-	l := logger.GetLogger()
-	err := runWithPanicProtection()
-	if err != nil {
-		l.Error(err.Error())
+	log := logger.GetLogger()
+
+	fail := func(e error) {
+		log.Error(e.Error())
 		time.Sleep(time.Second * 10)
 		os.Exit(1)
 	}
-}
 
-func runWithPanicProtection() error {
-	var args config.Args
-	_, err := flags.Parse(&args)
+	envConfig, err := config.Get()
 	if err != nil {
-		return err
+		fail(err)
+		return
 	}
 
-	err = func() (executionErr error) {
+	sentryAvailable := false
+	if envConfig.SentryDSN != "" {
+		err = sentry.Init(sentry.ClientOptions{
+			Dsn:              envConfig.SentryDSN,
+			TracesSampleRate: 1.0,
+			Environment:      envConfig.Environment,
+		})
+		if err != nil {
+			log.Error(errors.Wrap(err, "error setting up error watch"))
+		} else {
+			sentryAvailable = true
+		}
+	}
+
+	if sentryAvailable {
+		defer sentry.Flush(2 * time.Second)
+
+		fail = func(e error) {
+			log.Error(e.Error())
+
+			sentry.CaptureException(err)
+			log.Info("l'errore è stato segnalato automaticamente")
+
+			time.Sleep(time.Second * 10)
+			os.Exit(1)
+		}
+	}
+
+	var args config.Args
+	_, err = flags.Parse(&args)
+	if err != nil {
+		fail(err)
+		return
+	}
+
+	if args.Verbose {
+		log.SetLevel(logrus.DebugLevel)
+	}
+	if args.StdOut {
+		log.SetOutput(os.Stderr)
+	}
+
+	err = runWithPanicProtection(args, envConfig, log)
+	if err != nil {
+		fail(err)
+		return
+	}
+}
+
+func runWithPanicProtection(args config.Args, envConfig config.EnvConfig, logger *logrus.Logger) error {
+
+	err := func() (executionErr error) {
 		defer func() {
 			if recovered := recover(); recovered != nil {
-				executionErr = fmt.Errorf("[panic] %v", recovered)
+				executionErr = errors.Errorf("[panic] %v", recovered)
 			}
 		}()
 		if args.Legacy {
 			executionErr = runLegacy(args)
 		} else {
-			executionErr = run(args)
+			executionErr = run(args, envConfig, logger)
 		}
 		return
 	}()
@@ -75,7 +124,7 @@ func runLegacy(args config.Args) error {
 
 	parsed, err := parser.Parse(input, args, log)
 	if err != nil {
-		return fmt.Errorf("error reading from input file: %w", err)
+		return errors.Wrap(err, "error reading from input file")
 	}
 	log.Infof("found %d rows", len(parsed.Rows))
 
@@ -88,14 +137,14 @@ func runLegacy(args config.Args) error {
 	bytes, err := writer.Write(parsed, args, log)
 
 	if err != nil {
-		return fmt.Errorf("error running writer: %w", err)
+		return errors.Wrap(err, "error running writer")
 	}
 
 	if args.StdOut {
 		f := bufio.NewWriter(os.Stdout)
 		_, err := f.Write(bytes)
 		if err != nil {
-			return fmt.Errorf("error writing to stdout: %w", err)
+			return errors.Wrap(err, "error writing to stdout")
 		}
 		_ = f.Flush()
 
@@ -104,7 +153,7 @@ func runLegacy(args config.Args) error {
 		log.Debugf("writing to output file %s", outputFile)
 		err = os.WriteFile(outputFile, bytes, 0755)
 		if err != nil {
-			return fmt.Errorf("error saving to output file %s: %w", outputFile, err)
+			return errors.Wrapf(err, "error saving to output file %s", outputFile)
 		}
 		log.Infof("saved to output file %s", outputFile)
 
@@ -121,20 +170,13 @@ func pickWriterLegacy(arg config.Args) (writer.Writer, error) {
 		return &jsonwriter.WriterImpl{}, nil
 	}
 
-	return nil, fmt.Errorf("%s is not a valid output format (no writer available)", arg.Format)
+	return nil, errors.Errorf("%s is not a valid output format (no writer available)", arg.Format)
 }
 
-func run(args config.Args) error {
+func run(args config.Args, _ config.EnvConfig, log *logrus.Logger) error {
 	input := args.PositionalArgs.InputFile
 	if input == "" {
 		return errors.New("missing input file")
-	}
-	log := logger.GetLogger()
-	if args.Verbose {
-		log.SetLevel(logrus.DebugLevel)
-	}
-	if args.StdOut {
-		log.SetOutput(os.Stderr)
 	}
 
 	// parse the specified input file
@@ -174,14 +216,14 @@ func run(args config.Args) error {
 	bytes, err := writer.Write(workflowContext, aggregatorOutput, parserOutput.Anagraphics)
 
 	if err != nil {
-		return fmt.Errorf("error running writer: %w", err)
+		return errors.Wrap(err, "error running writer")
 	}
 
 	if args.StdOut {
 		f := bufio.NewWriter(os.Stdout)
 		_, err := f.Write(bytes)
 		if err != nil {
-			return fmt.Errorf("error writing to stdout: %w", err)
+			return errors.Wrap(err, "error writing to stdout")
 		}
 		_ = f.Flush()
 
@@ -190,7 +232,7 @@ func run(args config.Args) error {
 		log.Debugf("writing to output file %s", outputFile)
 		err = os.WriteFile(outputFile, bytes, 0755)
 		if err != nil {
-			return fmt.Errorf("error saving to output file %s: %w", outputFile, err)
+			return errors.Wrapf(err, "error saving to output file %s", outputFile)
 		}
 		log.Infof("saved to output file %s", outputFile)
 
@@ -207,5 +249,5 @@ func pickWriter(arg config.Args) (writer.WriterV2, error) {
 		return &jsonwriter2.WriterImpl{}, nil
 	}
 
-	return nil, fmt.Errorf("%s is not a valid output format (no writer available)", arg.Format)
+	return nil, errors.Errorf("%s is not a valid output format (no writer available)", arg.Format)
 }

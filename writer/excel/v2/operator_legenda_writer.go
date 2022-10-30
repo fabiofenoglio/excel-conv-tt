@@ -6,7 +6,7 @@ import (
 )
 
 func writeOperatorsLegenda(c WriteContext, startCell excel.Cell, operators map[string]parser.Operator) error {
-	// TODO copy rows and sort here
+	// may optionally copy rows and sort here
 
 	f := c.outputFile
 	cursor := startCell.Copy().AtBottom(2)

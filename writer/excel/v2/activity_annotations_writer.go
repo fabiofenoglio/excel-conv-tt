@@ -1,11 +1,10 @@
 package excel
 
 import (
-	"fmt"
-
 	aggregator2 "github.com/fabiofenoglio/excelconv/aggregator/v2"
 	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/excel"
+	"github.com/pkg/errors"
 )
 
 func writeAnnotationsOnActivities(
@@ -56,11 +55,11 @@ func writeAnnotationsOnActivities(
 						maxHeight: 45,
 					})
 					if err != nil {
-						return fmt.Errorf("error looking up spaces to write annotations: %w", err)
+						return errors.Wrap(err, "error looking up spaces to write annotations")
 					}
 
 					if len(foundSpaces) == 0 {
-						// TODO do something else,
+						// may do something else,
 						// like for instance adding to the cell text and increasing the column width
 						continue
 					}

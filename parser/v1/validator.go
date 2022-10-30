@@ -1,11 +1,12 @@
 package parser
 
 import (
-	"errors"
 	"fmt"
 	"regexp"
 	"strings"
 	_ "time/tzdata"
+
+	"github.com/pkg/errors"
 
 	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/model"
@@ -19,12 +20,12 @@ func validate(r reader.ExcelRow) error {
 
 	timeRangeRegexp := regexp.MustCompile(`^([0-9]|0[0-9]|1[0-9]|2[0-3]):([0-9]|[0-5][0-9])\s*\-\s*([0-9]|0[0-9]|1[0-9]|2[0-3]):([0-9]|[0-5][0-9])$`)
 	if !timeRangeRegexp.MatchString(r.Orario) {
-		return fmt.Errorf("orario non valido, atteso HH:MM-HH:MM e non '%s'", r.Orario)
+		return errors.Errorf("orario non valido, atteso HH:MM-HH:MM e non '%s'", r.Orario)
 	}
 
 	dateRegexp := regexp.MustCompile(`^\d{2}\/\d{2}\/\d{4}$`)
 	if !dateRegexp.MatchString(r.Data) {
-		return fmt.Errorf("data non valida, atteso GG/MM/YYYY e non '%s'", r.Data)
+		return errors.Errorf("data non valida, atteso GG/MM/YYYY e non '%s'", r.Data)
 	}
 
 	return nil

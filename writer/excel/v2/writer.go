@@ -8,6 +8,7 @@ import (
 
 	aggregator2 "github.com/fabiofenoglio/excelconv/aggregator/v2"
 	parser2 "github.com/fabiofenoglio/excelconv/parser/v2"
+	"github.com/pkg/errors"
 	"github.com/xuri/excelize/v2"
 
 	"github.com/fabiofenoglio/excelconv/config"
@@ -100,7 +101,7 @@ func (w *WriterImpl) Write(ctx config.WorkflowContext, parsed aggregator2.Output
 
 		dayWriteResult, err := writeDayWithDetails(ctx, wc, groupByDay, daysGridCursor)
 		if err != nil {
-			return nil, fmt.Errorf("error writing day: %w", err)
+			return nil, errors.Wrap(err, "error writing day")
 		}
 		aggregateDayWriter.Aggregate(dayWriteResult)
 
@@ -116,20 +117,20 @@ func (w *WriterImpl) Write(ctx config.WorkflowContext, parsed aggregator2.Output
 			// write operator colours
 			err := writeOperatorsLegenda(wc, daysGridCursor, anagraphicsRef.Operators)
 			if err != nil {
-				return nil, fmt.Errorf("error writing operator colors: %w", err)
+				return nil, errors.Wrap(err, "error writing operator colors")
 			}
 		}
 	}
 
 	for _, groupByDay := range groupedByStartDate {
 		if err := writeAnnotationsOnActivities(ctx, wc, groupByDay, aggregateDayWriter); err != nil {
-			return nil, fmt.Errorf("error writing activity annotations: %w", err)
+			return nil, errors.Wrap(err, "error writing activity annotations")
 		}
 	}
 
 	out, err := f.WriteToBuffer()
 	if err != nil {
-		return nil, fmt.Errorf("error writing output to buffer: %w", err)
+		return nil, errors.Wrap(err, "error writing output to buffer")
 	}
 	return out.Bytes(), nil
 }
@@ -144,7 +145,7 @@ func writeDayWithDetails(ctx config.WorkflowContext, c WriteContext, groupByDay 
 	{
 		outFromDayGridWriter, err := writeDayGrid(ctx, c, groupByDay, tracker)
 		if err != nil {
-			return zero, fmt.Errorf("error writing row: %w", err)
+			return zero, errors.Wrap(err, "error writing row")
 		}
 		out = outFromDayGridWriter
 	}
@@ -160,7 +161,7 @@ func writeDayWithDetails(ctx config.WorkflowContext, c WriteContext, groupByDay 
 
 		err := writeSchoolsForDay(c, schoolGroupsForThisDay, tracker)
 		if err != nil {
-			return zero, fmt.Errorf("error writing schools for day: %w", err)
+			return zero, errors.Wrap(err, "error writing schools for day")
 		}
 	}
 
@@ -170,7 +171,7 @@ func writeDayWithDetails(ctx config.WorkflowContext, c WriteContext, groupByDay 
 	{
 		err := writePlaceholdersForDay(c, tracker)
 		if err != nil {
-			return zero, fmt.Errorf("error writing placeholders for OOD: %w", err)
+			return zero, errors.Wrap(err, "error writing placeholders for OOD")
 		}
 	}
 
