@@ -49,6 +49,8 @@ announce:
       {{ .ReleaseNotes }}
     subject_template: 'Excel converter {{ .Tag }} disponibile per il download!'
     insecure_skip_verify: true
+source:
+  enabled: false
 
 # modelines, feel free to remove those if you don't want/use them:
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
