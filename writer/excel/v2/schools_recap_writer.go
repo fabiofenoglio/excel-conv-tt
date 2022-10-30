@@ -10,7 +10,10 @@ import (
 
 func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay, startCell excel.Cell) error {
 	f := c.outputFile
+	commonData := c.allData.CommonData
 	cursor := startCell.Copy()
+
+	lastSchoolCodeWrote := ""
 
 	for _, schoolGroup := range groups {
 		cursor.MoveColumn(startCell.Column())
@@ -29,9 +32,17 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 			return err
 		}
 
-		toWrite = schoolRef.FullDescription()
-		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
-			return err
+		if lastSchoolCodeWrote != "" && groupRef.SchoolCode == lastSchoolCodeWrote {
+			if err := f.MergeCell(cursor.SheetName(), cursor.AtTop(1).Code(), cursor.Code()); err != nil {
+				return err
+			}
+		} else {
+			lastSchoolCodeWrote = groupRef.SchoolCode
+
+			toWrite = schoolRef.FullDescription()
+			if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
+				return err
+			}
 		}
 
 		cursor.MoveRight(9)
@@ -65,7 +76,7 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 			return err
 		}
 
-		if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), 25); err != nil {
+		if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), 35); err != nil {
 			return err
 		}
 
@@ -77,21 +88,41 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 
 		toWrite = ""
 		if groupRef.BookingNotes != "" {
-			toWrite += groupRef.BookingNotes
+			toWrite += "*** " + groupRef.BookingNotes + "\n"
 		}
 		if groupRef.OperatorNotes != "" {
-			toWrite += "\n" + groupRef.OperatorNotes
+			toWrite += "*** " + groupRef.OperatorNotes + "\n"
 		}
-		toWrite = strings.TrimPrefix(toWrite, "\n")
+
+		teacherLine := ""
+		if groupRef.ClassTeacher != "" {
+			teacherLine += groupRef.ClassTeacher
+		}
+		if groupRef.ClassRefEmail != "" {
+			teacherLine += " - " + groupRef.ClassRefEmail
+		}
+		if teacherLine != "" {
+			toWrite += strings.TrimPrefix(teacherLine, " - ") + "\n"
+		}
+
+		toWrite = strings.TrimSuffix(toWrite, "\n")
+
 		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
-			return err
-		}
-		if err := f.SetCellStyle(cursor.SheetName(), cursor.Code(), cursor.Code(),
-			c.styleRegister.SchoolRecapStyle().Common.StyleID); err != nil {
 			return err
 		}
 
 		cursor.MoveBottom(1)
+	}
+
+	currentNum := len(groups)
+	for currentNum < commonData.MaxVisitingGroupsPerDay {
+		cursor.MoveBottom(1)
+		currentNum++
+	}
+
+	if err := f.SetCellStyle(cursor.SheetName(), startCell.Code(), cursor.Code(),
+		c.styleRegister.SchoolRecapStyle().Common.StyleID); err != nil {
+		return err
 	}
 
 	return nil

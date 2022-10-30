@@ -57,13 +57,3 @@ func ToOutputRow(input Row) OutputRow {
 		Warnings:          input.InputRow.Warnings,
 	}
 }
-
-func ToOutputRows(rows []Row) []OutputRow {
-	out := make([]OutputRow, 0, len(rows))
-
-	for _, input := range rows {
-		out = append(out, ToOutputRow(input))
-	}
-
-	return out
-}

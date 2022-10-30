@@ -48,6 +48,8 @@ func HydrateGroups(
 						NumFree:         row.numFree,
 						NumAccompanying: row.numAccompanying,
 					},
+					ClassTeacher:  row.classTeacher,
+					ClassRefEmail: row.classRefEmail,
 					BookingNotes:  row.BookingNote,
 					OperatorNotes: row.OperatorNote,
 				}
@@ -86,6 +88,12 @@ func HydrateGroups(
 				}
 				if row.BookingNote != "" && !strings.Contains(toEnrich.BookingNotes, row.BookingNote) {
 					toEnrich.BookingNotes = strings.TrimPrefix(toEnrich.BookingNotes+"\n"+row.BookingNote, "\n")
+				}
+				if row.classTeacher != "" && toEnrich.ClassTeacher == "" {
+					toEnrich.ClassTeacher = row.classTeacher
+				}
+				if row.classRefEmail != "" && toEnrich.ClassRefEmail == "" {
+					toEnrich.ClassRefEmail = row.classRefEmail
 				}
 				outGroups[groupMapped] = toEnrich
 			}

@@ -21,7 +21,7 @@ func writePlaceholdersForDay(c WriteContext, startCell excel.Cell) error {
 		"📝 Appuntamenti / note",
 		"🚨 Responsabile emergenza",
 		"🧯 Addetto antincendio / impianti",
-		"❤️‍🩹 Addetto antincendio / primo soccorso",
+		"⛑ Addetto antincendio / primo soccorso",
 		"🚌 Orari navetta dalle - alle",
 	}
 

@@ -196,9 +196,14 @@ func addCommentToCell(f *excelize.File, cell excel.Cell, content string) error {
 		Text   string `json:"text"`
 	}
 	v := serializable{
-		Author: "planner ",
+		Author: "planner: ",
 		Text:   content,
 	}
+
+	if len(v.Text) >= 32000 {
+		v.Text = v.Text[:31998]
+	}
+
 	serialized, err := json.Marshal(v)
 	if err != nil {
 		return err

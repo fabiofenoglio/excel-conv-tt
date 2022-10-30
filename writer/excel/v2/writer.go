@@ -127,7 +127,6 @@ func (w *WriterImpl) Write(ctx config.WorkflowContext, parsed aggregator2.Output
 		}
 	}
 
-	// Save spreadsheet by the given path.
 	out, err := f.WriteToBuffer()
 	if err != nil {
 		return nil, fmt.Errorf("error writing output to buffer: %w", err)

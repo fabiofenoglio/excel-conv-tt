@@ -20,6 +20,8 @@ func Execute(ctx config.WorkflowContext, rawInput parser.Output) (Output, error)
 
 	daysWithRoomsAndGroupingSlots := AggregateByRooomGroupSlotInRoom(ctx, daysWithRoomsAndGrouping, rawInput.Anagraphics)
 
+	commonData = ExtractCommonDataFinal(ctx, commonData, daysWithRoomsAndGroupingSlots)
+
 	return Output{
 		CommonData: commonData,
 		Days:       daysWithRoomsAndGroupingSlots,

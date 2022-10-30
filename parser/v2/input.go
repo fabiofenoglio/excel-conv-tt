@@ -30,6 +30,8 @@ type InputRow struct {
 	schoolName      string
 	class           string
 	classSection    string
+	classTeacher    string
+	classRefEmail   string
 	numPaying       int
 	numFree         int
 	numAccompanying int
@@ -65,6 +67,8 @@ func ToInputRows(rows []reader.OutputRow) []InputRow {
 			schoolName:                input.SchoolName,
 			class:                     input.Class,
 			classSection:              input.ClassSection,
+			classTeacher:              input.ClassTeacher,
+			classRefEmail:             input.ClassRefEmail,
 			activityTypeRawString:     input.Type,
 			Bus:                       input.Bus,
 			PaymentAdvance:            input.PaymentAdvance,

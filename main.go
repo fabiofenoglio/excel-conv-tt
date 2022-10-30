@@ -21,6 +21,7 @@ import (
 	"github.com/fabiofenoglio/excelconv/logger"
 	"github.com/fabiofenoglio/excelconv/writer"
 	jsonwriter "github.com/fabiofenoglio/excelconv/writer/json"
+	jsonwriter2 "github.com/fabiofenoglio/excelconv/writer/json/v2"
 )
 
 func main() {
@@ -203,8 +204,7 @@ func pickWriter(arg config.Args) (writer.WriterV2, error) {
 	case "excel":
 		return &excelwriter2.WriterImpl{}, nil
 	case "json":
-		// TODO
-		return nil, nil
+		return &jsonwriter2.WriterImpl{}, nil
 	}
 
 	return nil, fmt.Errorf("%s is not a valid output format (no writer available)", arg.Format)

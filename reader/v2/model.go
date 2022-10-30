@@ -20,6 +20,8 @@ type Row struct {
 	SchoolName           string `column:"nome scuola"`
 	Class                string `column:"classe"`
 	ClassSection         string `column:"sezione"`
+	ClassTeacher         string `column:"insegnante"`
+	ClassRefEmail        string `column:"email referente"`
 	Type                 string `column:"tipologia"`
 	Bus                  string `column:"bus"`
 	PaymentAdvance       string `column:"acconti"`

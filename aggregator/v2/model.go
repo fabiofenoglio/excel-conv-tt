@@ -17,7 +17,8 @@ type CommonTimespan struct {
 }
 
 type CommonData struct {
-	CommonTimespan CommonTimespan
+	CommonTimespan          CommonTimespan
+	MaxVisitingGroupsPerDay int
 }
 
 type TimeOfDay struct {
