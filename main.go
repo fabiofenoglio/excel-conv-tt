@@ -56,7 +56,7 @@ func main() {
 		fail = func(e error) {
 			log.Error(e.Error())
 
-			sentry.CaptureException(err)
+			sentry.CaptureException(e)
 			log.Info("l'errore è stato segnalato automaticamente")
 
 			time.Sleep(time.Second * 10)
