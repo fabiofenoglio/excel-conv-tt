@@ -59,6 +59,8 @@ func buildNewRoom(code string, name string) Room {
 			name = knownRoom.Name
 		}
 		code = knownRoom.Code
+	} else {
+		knownRoom.ShowActivityNamesInside = true
 	}
 
 	return Room{
