@@ -26,9 +26,9 @@ func Execute(ctx config.WorkflowContext, rawInput reader.Output) (Output, error)
 		return Output{}, errors.Wrap(err, "errore nella lettura dei gruppi scuola")
 	}
 
-	afterRuleA0, err := ApplyRuleA0Level(ctx, rowsWithGroups)
+	afterRuleA0, err := ApplyRuleB0Level(ctx, rowsWithGroups)
 	if err != nil {
-		return Output{}, errors.Wrap(err, "errore nell'applicazione delle regole di livello A0")
+		return Output{}, errors.Wrap(err, "errore nell'applicazione delle regole di livello B0")
 	}
 
 	rowsWithActivities, activities, activityTypes, err := HydrateActivities(ctx, afterRuleA0)

@@ -22,6 +22,10 @@ import (
 	jsonwriter2 "github.com/fabiofenoglio/excelconv/writer/json/v2"
 )
 
+const (
+	internalVersion = "003"
+)
+
 func main() {
 	log := logger.GetLogger()
 
@@ -56,10 +60,11 @@ func main() {
 
 		fail = func(e error) {
 			log.Error(e.Error())
-
-			sentry.CaptureException(e)
+			sentry.WithScope(func(scope *sentry.Scope) {
+				scope.SetExtra("internalVersion", internalVersion)
+				sentry.CaptureException(e)
+			})
 			log.Info("l'errore è stato segnalato automaticamente")
-
 			time.Sleep(time.Second * 10)
 			os.Exit(1)
 		}
@@ -94,6 +99,7 @@ func main() {
 			sentry.WithScope(func(scope *sentry.Scope) {
 				scope.SetLevel(sentry.LevelInfo)
 				scope.SetExtra("arguments", args)
+				scope.SetExtra("internalVersion", internalVersion)
 				sentry.CaptureMessage("successful execution")
 			})
 		}

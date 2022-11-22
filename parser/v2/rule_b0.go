@@ -9,17 +9,17 @@ import (
 	"github.com/fabiofenoglio/excelconv/config"
 )
 
-func ApplyRuleA0Level(
+func ApplyRuleB0Level(
 	ctx config.WorkflowContext,
 	rows []Row,
 ) ([]Row, error) {
-	rows, err := applyRuleA0LevelRule0(ctx, rows)
+	rows, err := applyRuleB0LevelRule0(ctx, rows)
 	if err != nil {
 		return nil, err
 	}
 
 	/*
-		rows, err = applyRuleA0LevelRule1(ctx, rows)
+		rows, err = applyRuleB0LevelRule1(ctx, rows)
 		if err != nil {
 			return nil, err
 		}
@@ -28,7 +28,7 @@ func ApplyRuleA0Level(
 	return rows, nil
 }
 
-func applyRuleA0LevelRule0(
+func applyRuleB0LevelRule0(
 	ctx config.WorkflowContext,
 	rows []Row,
 ) ([]Row, error) {
@@ -129,7 +129,7 @@ func applyRuleA0LevelRule0(
 }
 
 //nolint:unused,deadcode
-func applyRuleA0LevelRule1(
+func applyRuleB0LevelRule1(
 	ctx config.WorkflowContext,
 	rows []Row,
 ) ([]Row, error) {

@@ -2,11 +2,37 @@ package excel
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	aggregator2 "github.com/fabiofenoglio/excelconv/aggregator/v2"
 	"github.com/fabiofenoglio/excelconv/excel"
 )
+
+type rewriteRule struct {
+	find    *regexp.Regexp
+	replace string
+}
+
+var schoolNameRewriteRules = []rewriteRule{
+	{find: regexp.MustCompile(`(?mi)^scuola\s*\:*\s*`), replace: ""},
+	{find: regexp.MustCompile(`(?mi)(^|\s)((?:ISTITUTO\s+COMPRENSIVO|I\.C\.|(?:IC))[\s\-]+)+`), replace: "${1}I.C. "},
+	{find: regexp.MustCompile(`(?mi)istruzione\s+secondaria\s*superiore`), replace: "I.S.S."},
+	{find: regexp.MustCompile(`(?mi)(?:^|\s)(primaria)(?:$|\s)`), replace: " EL "},
+	{find: regexp.MustCompile(`(?mi)(?:^|\s)(secondaria\s+(I°?|primo)\s+grado)(?:$|\s)`), replace: " SM "},
+	{find: regexp.MustCompile(`(?mi)(?:^|\s)(secondaria\s+(II°?|secondo)\s+grado)(?:$|\s)`), replace: " SUP "},
+	{find: regexp.MustCompile(`[\r\n]+`), replace: " "},
+	{find: regexp.MustCompile(`[\s\t]+`), replace: " "},
+	{find: regexp.MustCompile(`^\s*`), replace: ""},
+	{find: regexp.MustCompile(`\s*$`), replace: ""},
+}
+
+func rewriteSchoolNameWithRules(raw string) string {
+	for _, r := range schoolNameRewriteRules {
+		raw = r.find.ReplaceAllString(raw, r.replace)
+	}
+	return raw
+}
 
 func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay, startCell excel.Cell) error {
 	f := c.outputFile
@@ -86,7 +112,11 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 		}
 		cursor.MoveRight(1)
 
-		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(8).Code()); err != nil {
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(6).Code()); err != nil {
+			return err
+		}
+
+		if err := f.MergeCell(cursor.SheetName(), cursor.AtRight(7).Code(), cursor.AtRight(8).Code()); err != nil {
 			return err
 		}
 
@@ -94,11 +124,21 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 			if err := f.MergeCell(cursor.SheetName(), cursor.AtTop(1).Code(), cursor.Code()); err != nil {
 				return err
 			}
+			if err := f.MergeCell(cursor.SheetName(), cursor.AtRight(7).AtTop(1).Code(), cursor.AtRight(7).Code()); err != nil {
+				return err
+			}
 		} else {
 			lastSchoolCodeWrote = groupRef.SchoolCode
 
-			toWrite = schoolRef.FullDescription()
+			toWrite = rewriteSchoolNameWithRules(schoolRef.Name)
+
 			if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
+				return err
+			}
+
+			toWrite = rewriteSchoolNameWithRules(schoolRef.Type)
+
+			if err := f.SetCellValue(cursor.SheetName(), cursor.AtRight(7).Code(), toWrite); err != nil {
 				return err
 			}
 		}
@@ -108,7 +148,9 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
 			return err
 		}
+
 		toWrite = schoolClassRef.FullDescription()
+
 		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
 			return err
 		}
@@ -119,19 +161,21 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 			return err
 		}
 
-		toWrite = fmt.Sprintf("%d (%d",
-			groupRef.Composition.NumTotal(),
-			groupRef.Composition.NumPaying)
-		if groupRef.Composition.NumAccompanying > 0 {
-			toWrite += fmt.Sprintf(", %d acc.", groupRef.Composition.NumAccompanying)
-		}
-		if groupRef.Composition.NumFree > 0 {
-			toWrite += fmt.Sprintf("+ %d GRAT.", groupRef.Composition.NumFree)
-		}
-		toWrite += ")"
-
-		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
+		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), groupRef.Composition.NumTotal()); err != nil {
 			return err
+		}
+
+		if groupRef.Composition.NumFree > 0 {
+			toWrite = fmt.Sprintf("Paganti: %d", groupRef.Composition.NumPaying)
+			if groupRef.Composition.NumAccompanying > 0 {
+				toWrite += fmt.Sprintf("\nAccompagnatori: %d", groupRef.Composition.NumAccompanying)
+			}
+			if groupRef.Composition.NumFree > 0 {
+				toWrite += fmt.Sprintf("\nGRATUITI: %d", groupRef.Composition.NumFree)
+			}
+			if err := addCommentToCell(f, cursor, toWrite); err != nil {
+				return err
+			}
 		}
 
 		if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), 35); err != nil {

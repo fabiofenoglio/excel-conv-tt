@@ -39,6 +39,13 @@ func Execute(ctx config.WorkflowContext, input Input) (Output, error) {
 		return Output{}, errors.Wrap(err, "errore nella conversione dei dati di input")
 	}
 
+	span = sentry.StartSpan(ctx.Context, "apply A0-level rules")
+	rows, err = ApplyRuleA0Level(ctx, rows)
+	span.Finish()
+	if err != nil {
+		return Output{}, errors.Wrap(err, "errore nell'applicazione delle regole di livello A0")
+	}
+
 	// randomizer: randomize rows to enforce full sorting
 	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(rows), func(i, j int) { rows[i], rows[j] = rows[j], rows[i] })
