@@ -4,6 +4,45 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+const defaultFontSize = float64(11)
+
+type FontOverride struct {
+	SizeOffset   float64
+	ForceSize    float64
+	ForceBold    bool
+	ForceNotBold bool
+	Color        string
+}
+
+func defaultFontBuilder(settings *FontOverride) *excelize.Font {
+	out := &excelize.Font{
+		Size: defaultFontSize,
+		Bold: false,
+	}
+
+	if settings == nil {
+		return out
+	}
+
+	if settings.ForceSize != 0 {
+		out.Size = settings.ForceSize
+	}
+	if settings.SizeOffset != 0 {
+		out.Size += settings.SizeOffset
+	}
+	if settings.ForceBold {
+		out.Bold = true
+	}
+	if settings.ForceNotBold {
+		out.Bold = false
+	}
+	if settings.Color != "" {
+		out.Color = settings.Color
+	}
+
+	return out
+}
+
 var (
 	standardWarningVariant = func(s *excelize.Style) {
 		if s.Border != nil {
@@ -24,6 +63,7 @@ var (
 			Color:   []string{"#DDDDDD"},
 			Pattern: 1,
 		},
+		Font: defaultFontBuilder(nil),
 	}
 
 	dayRoomBoxStyle = &StyleDefV2{
@@ -36,6 +76,10 @@ var (
 			Color: "333333", Style: 4,
 			Top: true, Bottom: true, Left: true, Right: true,
 		},
+		Font: defaultFontBuilder(&FontOverride{
+			ForceBold: true,
+			ForceSize: 10,
+		}),
 	}
 
 	schoolRecapStyle = &StyleDefV2{
@@ -47,16 +91,49 @@ var (
 			Color: "333333", Style: 4,
 			Bottom: true,
 		},
+		Font: defaultFontBuilder(&FontOverride{
+			ForceBold:  true,
+			SizeOffset: 3,
+		}),
+	}
+	schoolRecapNotesStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Vertical: "center",
+			WrapText: true,
+		},
+		Border: &StyleDefV2Border{
+			Color:  "#CC2222",
+			Style:  1,
+			Bottom: true,
+			Left:   true,
+			Top:    true,
+			Right:  true,
+		},
+		Font: defaultFontBuilder(&FontOverride{
+			ForceBold:  true,
+			SizeOffset: 0,
+		}),
+	}
+	schoolRecapContactStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Vertical: "center",
+			WrapText: true,
+		},
+		Border: &StyleDefV2Border{
+			Color: "333333", Style: 4,
+			Bottom: true,
+		},
+		Font: defaultFontBuilder(&FontOverride{
+			ForceBold:  false,
+			SizeOffset: -1,
+		}),
 	}
 	schoolRecapHeaderStyle = &StyleDefV2{
 		Alignment: &excelize.Alignment{
 			Vertical: "center",
 			WrapText: true,
 		},
-		Font: &excelize.Font{
-			Bold: true,
-			Size: 10,
-		},
+		Font: defaultFontBuilder(nil),
 		Border: &StyleDefV2Border{
 			Color: "333333", Style: 1,
 			Bottom: true,
@@ -64,10 +141,10 @@ var (
 	}
 
 	dayHeaderStyle = &StyleDefV2{
-		Font: &excelize.Font{
-			Size:  14,
-			Color: "#FFFFFF",
-		},
+		Font: defaultFontBuilder(&FontOverride{
+			SizeOffset: 3,
+			Color:      "#FFFFFF",
+		}),
 		Alignment: &excelize.Alignment{
 			Horizontal: "center",
 			Vertical:   "center",
@@ -84,10 +161,10 @@ var (
 	}
 
 	inBoxAnnotationOnLeft = &StyleDefV2{
-		Font: &excelize.Font{
-			Size:  11,
-			Color: "#333333",
-		},
+		Font: defaultFontBuilder(&FontOverride{
+			SizeOffset: 0,
+			Color:      "#333333",
+		}),
 		Alignment: &excelize.Alignment{
 			Horizontal: "left",
 			Vertical:   "center",
@@ -103,10 +180,10 @@ var (
 		},
 	}
 	inBoxAnnotationOnRight = &StyleDefV2{
-		Font: &excelize.Font{
-			Size:  11,
-			Color: "#333333",
-		},
+		Font: defaultFontBuilder(&FontOverride{
+			SizeOffset: 11,
+			Color:      "#333333",
+		}),
 		Alignment: &excelize.Alignment{
 			Horizontal: "right",
 			Vertical:   "center",
@@ -132,9 +209,11 @@ var (
 			Color:   []string{"#E02222"},
 			Pattern: 1,
 		},
-		Font: &excelize.Font{
-			Color: "#FFFFFF",
-		},
+		Font: defaultFontBuilder(&FontOverride{
+			Color:     "#FFFFFF",
+			ForceBold: true,
+			ForceSize: 10,
+		}),
 		Border: &StyleDefV2Border{
 			Color: "FFFFFF", Style: 2,
 			Top: true, Bottom: true, Left: true, Right: true,
@@ -156,6 +235,10 @@ var (
 			Color: "333333", Style: 4,
 			Top: true, Bottom: true, Left: true, Right: true,
 		},
+		Font: defaultFontBuilder(&FontOverride{
+			ForceBold: true,
+			ForceSize: 10,
+		}),
 		AsWarning: standardWarningVariant,
 	}
 
@@ -170,10 +253,11 @@ var (
 			Color:   []string{"#E02222"},
 			Pattern: 1,
 		},
-		Font: &excelize.Font{
-			Color: "#FFFFFF",
-			Size:  10,
-		},
+		Font: defaultFontBuilder(&FontOverride{
+			Color:     "#FFFFFF",
+			ForceBold: true,
+			ForceSize: 10,
+		}),
 		Border: &StyleDefV2Border{
 			Color: "FFFFFF", Style: 1,
 			Top: true, Bottom: true, Left: true, Right: true,
@@ -192,25 +276,13 @@ var (
 			Color:   []string{"#EEEEEE"},
 			Pattern: 1,
 		},
-		Font: &excelize.Font{
-			Size: 10,
-		},
+		Font: defaultFontBuilder(&FontOverride{
+			ForceBold: true,
+			ForceSize: 10,
+		}),
 		Border: &StyleDefV2Border{
 			Color: "333333", Style: 1,
 			Top: true, Bottom: true, Left: true, Right: true,
-		},
-		AsWarning: standardWarningVariant,
-	}
-
-	toBeFilledStyle = &StyleDefV2{
-		Alignment: &excelize.Alignment{
-			Horizontal: "left",
-			Vertical:   "center",
-			WrapText:   true,
-		},
-		Border: &StyleDefV2Border{
-			Color: "333333", Style: 4,
-			Bottom: true,
 		},
 		AsWarning: standardWarningVariant,
 	}
@@ -221,9 +293,14 @@ var (
 			Vertical:   "center",
 		},
 		Border: &StyleDefV2Border{
-			Color: "333333", Style: 4,
+			Color:  "333333",
+			Style:  1,
 			Bottom: true,
 		},
+		Font: defaultFontBuilder(&FontOverride{
+			ForceBold:  true,
+			SizeOffset: 2,
+		}),
 	}
 	bottomPlaceholderTextStyle = &StyleDefV2{
 		Alignment: &excelize.Alignment{
@@ -232,19 +309,40 @@ var (
 			WrapText:   true,
 		},
 		Border: &StyleDefV2Border{
-			Color: "333333", Style: 4,
+			Color:  "333333",
+			Style:  1,
 			Bottom: true,
 		},
-		Font: &excelize.Font{
-			Bold: true,
+		Font: defaultFontBuilder(&FontOverride{
+			ForceBold:  true,
+			SizeOffset: 2,
+		}),
+	}
+	toBeFilledStyle = &StyleDefV2{
+		Alignment: &excelize.Alignment{
+			Horizontal: "left",
+			Vertical:   "center",
+			WrapText:   true,
 		},
+		Border: &StyleDefV2Border{
+			Color:  "333333",
+			Style:  1,
+			Bottom: true,
+		},
+		Font: defaultFontBuilder(&FontOverride{
+			ForceBold:  false,
+			SizeOffset: 2,
+		}),
+		AsWarning: standardWarningVariant,
 	}
 
 	softDividerStyle = &StyleDefV2{
 		Border: &StyleDefV2Border{
-			Color: "333333", Style: 1,
+			Color:  "333333",
+			Style:  1,
 			Bottom: true,
 		},
+		Font: defaultFontBuilder(nil),
 	}
 )
 
@@ -263,15 +361,18 @@ func buildForRoom(color string) *StyleDefV2 {
 			Color: "333333", Style: 2,
 			Top: true, Bottom: true, Left: true, Right: true,
 		},
+		Font: defaultFontBuilder(&FontOverride{
+			ForceSize: 10,
+		}),
 		AsWarning: standardWarningVariant,
 	}
 }
 
 func buildForOperator(color string) *StyleDefV2 {
 	return &StyleDefV2{
-		Font: &excelize.Font{
-			Size: 10,
-		},
+		Font: defaultFontBuilder(&FontOverride{
+			ForceSize: 10,
+		}),
 		Alignment: &excelize.Alignment{
 			Horizontal: "center",
 			Vertical:   "center",

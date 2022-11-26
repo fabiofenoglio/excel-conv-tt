@@ -152,6 +152,14 @@ func (r *StyleRegister) SchoolRecapStyle() *RegisteredStyleV2 {
 	return r.registerIfNeeded(schoolRecapStyle)
 }
 
+func (r *StyleRegister) SchoolRecapNotesStyle() *RegisteredStyleV2 {
+	return r.registerIfNeeded(schoolRecapNotesStyle)
+}
+
+func (r *StyleRegister) SchoolRecapContactStyle() *RegisteredStyleV2 {
+	return r.registerIfNeeded(schoolRecapContactStyle)
+}
+
 func (r *StyleRegister) OperatorStyle(color string) *RegisteredStyleV2 {
 	key := "op/" + strings.ToLower(color)
 	if v, ok := r.registeredStyles[key]; ok {
