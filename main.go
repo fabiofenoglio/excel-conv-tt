@@ -23,7 +23,7 @@ import (
 )
 
 const (
-	internalVersion = "003"
+	internalVersion = "004"
 )
 
 func main() {

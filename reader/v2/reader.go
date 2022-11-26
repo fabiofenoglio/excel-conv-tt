@@ -105,7 +105,7 @@ func ReadFromFile(ctx config.WorkflowContext, input string) ([]Row, error) {
 				errMsg := fmt.Sprintf("field '%s' is NOT mapped by any column", field.Name)
 				if required {
 					log.Error(errMsg)
-					return nil, errors.New(errMsg)
+					return nil, errors.Errorf("nel file di input manca una colonna con nome '%s'", columnName)
 				} else {
 					log.Warn(errMsg)
 				}

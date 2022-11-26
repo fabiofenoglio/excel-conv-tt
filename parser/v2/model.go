@@ -16,6 +16,7 @@ type Room struct {
 	Hide                           bool   `json:"-"`
 	GroupActivities                bool   `json:"-"`
 	ShowActivityNamesInside        bool   `json:"-"`
+	AlwaysShow                     bool   `json:"-"`
 }
 
 type Row struct {
