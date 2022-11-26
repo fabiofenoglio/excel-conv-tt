@@ -177,6 +177,8 @@ func writeDayWithDetails(ctx config.WorkflowContext, c WriteContext, groupByDay 
 	}
 	tracker.MoveBottom(1)
 
+	numAvailableColumns := tracker.CoveredArea().RightColumn() - tracker.Column()
+
 	// WRITE SCHOOL/GROUPS FOR THE DAY
 	schoolGroupsForThisDay := groupByDay.VisitingGroups
 	if len(schoolGroupsForThisDay) > 0 {
@@ -185,7 +187,7 @@ func writeDayWithDetails(ctx config.WorkflowContext, c WriteContext, groupByDay 
 			return r < 0
 		})
 
-		err := writeSchoolsForDay(c, schoolGroupsForThisDay, tracker)
+		err := writeSchoolsForDay(c, schoolGroupsForThisDay, tracker, numAvailableColumns)
 		if err != nil {
 			return zero, errors.Wrap(err, "error writing schools for day")
 		}
@@ -202,7 +204,7 @@ func writeDayWithDetails(ctx config.WorkflowContext, c WriteContext, groupByDay 
 
 	// WRITE PLACEHOLDERS FOR ORDER OF THE DAY
 	{
-		err := writePlaceholdersForDay(c, tracker)
+		err := writePlaceholdersForDay(c, tracker, numAvailableColumns)
 		if err != nil {
 			return zero, errors.Wrap(err, "error writing placeholders for OOD")
 		}

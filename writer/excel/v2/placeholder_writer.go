@@ -6,7 +6,7 @@ import (
 	"github.com/fabiofenoglio/excelconv/excel"
 )
 
-func writePlaceholdersForDay(c WriteContext, startCell excel.Cell) error {
+func writePlaceholdersForDay(c WriteContext, startCell excel.Cell, availableColumns uint) error {
 	f := c.outputFile
 	cursor := startCell.Copy()
 
@@ -31,6 +31,8 @@ func writePlaceholdersForDay(c WriteContext, startCell excel.Cell) error {
 	}
 
 	cursor = cursor.AtBottom(1)
+
+	lastColumn := startCell.Column() + availableColumns - 1
 
 	for _, rowToWrite := range rowsToWrite {
 		valueCursors := cursor.AtRight(10)
@@ -57,10 +59,10 @@ func writePlaceholdersForDay(c WriteContext, startCell excel.Cell) error {
 		if err := f.SetCellValue(cursor.SheetName(), valueCursors.Code(), ""); err != nil {
 			return err
 		}
-		if err := f.MergeCell(cursor.SheetName(), valueCursors.Code(), valueCursors.AtRight(11).Code()); err != nil {
+		if err := f.MergeCell(cursor.SheetName(), valueCursors.Code(), valueCursors.AtColumn(lastColumn).Code()); err != nil {
 			return err
 		}
-		if err := f.SetCellStyle(cursor.SheetName(), valueCursors.Code(), valueCursors.AtRight(11).Code(),
+		if err := f.SetCellStyle(cursor.SheetName(), valueCursors.Code(), valueCursors.AtColumn(lastColumn).Code(),
 			c.styleRegister.ToBeFilledStyle().SingleCell()); err != nil {
 			return err
 		}

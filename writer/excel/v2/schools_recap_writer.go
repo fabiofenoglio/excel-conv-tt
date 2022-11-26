@@ -34,11 +34,11 @@ func rewriteSchoolNameWithRules(raw string) string {
 	return raw
 }
 
-func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay, startCell excel.Cell) error {
+func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay, startCell excel.Cell, availableColumns uint) error {
 	f := c.outputFile
 	commonData := c.allData.CommonData
 	cursor := startCell.Copy()
-	rightColumn := startCell.Column() + 21
+	rightColumn := startCell.Column() + availableColumns - 1
 
 	// write header
 	cursor.MoveColumn(startCell.Column())
@@ -102,65 +102,69 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 	for _, schoolGroup := range groups {
 		cursor.MoveColumn(startCell.Column())
 
+		// fetch detailed data for group
 		groupRef := c.anagraphicsRef.VisitingGroups[schoolGroup.VisitingGroupCode]
 		schoolRef := c.anagraphicsRef.Schools[groupRef.SchoolCode]
 		schoolClassRef := c.anagraphicsRef.SchoolClasses[groupRef.SchoolClassCode]
 
+		// write group display code in first cell
 		toWrite := schoolGroup.DisplayCode
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtBottom(1).Code()); err != nil {
+			return err
+		}
 		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
 			return err
 		}
 		cursor.MoveRight(1)
 
-		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(6).Code()); err != nil {
+		// merge 7 cells for school name and 2 cells for school type
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(6).AtBottom(1).Code()); err != nil {
 			return err
 		}
-
-		if err := f.MergeCell(cursor.SheetName(), cursor.AtRight(7).Code(), cursor.AtRight(8).Code()); err != nil {
+		if err := f.MergeCell(cursor.SheetName(), cursor.AtRight(7).Code(), cursor.AtRight(8).AtBottom(1).Code()); err != nil {
 			return err
 		}
 
 		if lastSchoolCodeWrote != "" && groupRef.SchoolCode == lastSchoolCodeWrote {
-			if err := f.MergeCell(cursor.SheetName(), cursor.AtTop(1).Code(), cursor.Code()); err != nil {
+			// same school of previous line, just merge with top row
+			if err := f.MergeCell(cursor.SheetName(),
+				cursor.AtTop(2).Code(),
+				cursor.AtBottom(1).Code()); err != nil {
 				return err
 			}
-			if err := f.MergeCell(cursor.SheetName(), cursor.AtRight(7).AtTop(1).Code(), cursor.AtRight(7).Code()); err != nil {
+			if err := f.MergeCell(cursor.SheetName(),
+				cursor.AtRight(7).AtTop(2).Code(),
+				cursor.AtRight(7).AtBottom(1).Code()); err != nil {
 				return err
 			}
 		} else {
+			// school is different than previous line, write a new one
 			lastSchoolCodeWrote = groupRef.SchoolCode
 
-			toWrite = rewriteSchoolNameWithRules(schoolRef.Name)
-
-			if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
+			if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), rewriteSchoolNameWithRules(schoolRef.Name)); err != nil {
 				return err
 			}
-
-			toWrite = rewriteSchoolNameWithRules(schoolRef.Type)
-
-			if err := f.SetCellValue(cursor.SheetName(), cursor.AtRight(7).Code(), toWrite); err != nil {
+			if err := f.SetCellValue(cursor.SheetName(), cursor.AtRight(7).Code(), rewriteSchoolNameWithRules(schoolRef.Type)); err != nil {
 				return err
 			}
 		}
 
 		cursor.MoveRight(9)
 
-		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
+		// write class name merging 3 cells
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).AtBottom(1).Code()); err != nil {
 			return err
 		}
-
-		toWrite = schoolClassRef.FullDescription()
-
-		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
+		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), schoolClassRef.FullDescription()); err != nil {
 			return err
 		}
 
 		cursor.MoveRight(3)
 
-		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).Code()); err != nil {
+		// write class composition merging 3 cells
+		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(2).AtBottom(1).Code()); err != nil {
 			return err
 		}
-
 		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), groupRef.Composition.NumTotal()); err != nil {
 			return err
 		}
@@ -178,16 +182,21 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 			}
 		}
 
-		if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), 35); err != nil {
-			return err
-		}
-
 		cursor.MoveRight(3)
 
-		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtRight(6).Code()); err != nil {
+		// merge all remaining columns for notes
+		if err := f.MergeCell(cursor.SheetName(),
+			cursor.Code(),
+			cursor.AtColumn(rightColumn).Code()); err != nil {
+			return err
+		}
+		if err := f.MergeCell(cursor.SheetName(),
+			cursor.AtBottom(1).Code(),
+			cursor.AtBottom(1).AtColumn(rightColumn).Code()); err != nil {
 			return err
 		}
 
+		// write notes and contacts in the same cell
 		toWrite = ""
 		if groupRef.BookingNotes != "" {
 			toWrite += "⚠️ " + groupRef.BookingNotes + "\n"
@@ -195,36 +204,87 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 		if groupRef.OperatorNotes != "" {
 			toWrite += "⚠️ " + groupRef.OperatorNotes + "\n"
 		}
+		toWrite = strings.TrimSuffix(toWrite, "\n")
+		didWriteNotes := false
+		if toWrite != "" {
+			didWriteNotes = true
+			if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
+				return err
+			}
+		}
 
-		teacherLine := ""
+		cursor.MoveBottom(1)
+
+		toWrite = ""
 		if groupRef.ClassTeacher != "" {
-			teacherLine += groupRef.ClassTeacher
+			toWrite += groupRef.ClassTeacher
 		}
 		if groupRef.ClassRefEmail != "" {
-			teacherLine += " - " + groupRef.ClassRefEmail
+			toWrite += " - " + groupRef.ClassRefEmail
 		}
-		if teacherLine != "" {
-			toWrite += strings.TrimPrefix(teacherLine, " - ") + "\n"
-		}
-
 		toWrite = strings.TrimSuffix(toWrite, "\n")
 
-		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
+		writeContactIn := cursor.Copy()
+		if !didWriteNotes {
+			// merge both lines
+			if err := f.MergeCell(cursor.SheetName(),
+				cursor.AtTop(1).Code(),
+				cursor.Code()); err != nil {
+				return err
+			}
+			writeContactIn = writeContactIn.AtTop(1)
+		}
+
+		if err := f.SetCellValue(cursor.SheetName(), writeContactIn.Code(), toWrite); err != nil {
 			return err
 		}
 
-		cursor.MoveBottom(1)
+		// set rows height
+		if err := f.SetRowHeight(cursor.SheetName(), int(cursor.AtTop(1).Row()), 25); err != nil {
+			return err
+		}
+		if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), 15); err != nil {
+			return err
+		}
+
+		cursor.MoveTop(1)
+
+		if err := f.SetCellStyle(cursor.SheetName(),
+			cursor.AtColumn(startCell.Column()).Code(),
+			cursor.AtColumn(rightColumn).AtBottom(1).Code(),
+			c.styleRegister.SchoolRecapStyle().SingleCell()); err != nil {
+			return err
+		}
+
+		if didWriteNotes {
+			if err := f.SetCellStyle(cursor.SheetName(),
+				cursor.AtColumn(startCell.Column()).AtRight(16).Code(),
+				cursor.AtColumn(rightColumn).Code(),
+				c.styleRegister.SchoolRecapNotesStyle().SingleCell()); err != nil {
+				return err
+			}
+			if err := f.SetCellStyle(cursor.SheetName(),
+				cursor.AtColumn(startCell.Column()).AtRight(16).AtBottom(1).Code(),
+				cursor.AtColumn(rightColumn).AtBottom(1).Code(),
+				c.styleRegister.SchoolRecapContactStyle().SingleCell()); err != nil {
+				return err
+			}
+		} else {
+			if err := f.SetCellStyle(cursor.SheetName(),
+				cursor.AtColumn(startCell.Column()).AtRight(16).Code(),
+				cursor.AtColumn(rightColumn).AtBottom(1).Code(),
+				c.styleRegister.SchoolRecapContactStyle().SingleCell()); err != nil {
+				return err
+			}
+		}
+
+		cursor.MoveBottom(2)
 	}
 
-	currentNum := len(groups)
-	for currentNum < commonData.MaxVisitingGroupsPerDay {
+	currentNum := len(groups) * 2
+	for currentNum < commonData.MaxVisitingGroupsPerDay*2 {
 		cursor.MoveBottom(1)
 		currentNum++
-	}
-
-	if err := f.SetCellStyle(cursor.SheetName(), startCell.AtBottom(1).Code(), cursor.AtColumn(rightColumn).Code(),
-		c.styleRegister.SchoolRecapStyle().SingleCell()); err != nil {
-		return err
 	}
 
 	return nil

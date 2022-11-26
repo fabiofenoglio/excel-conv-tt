@@ -44,7 +44,7 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 		if room.Hide {
 			continue
 		}
-		if !room.Known && group.NumTotalInAllSlots == 0 {
+		if !room.AlwaysShow && group.NumTotalInAllSlots == 0 {
 			continue
 		}
 		log.Debugf("writing header for room group %s", room.Code)
@@ -208,7 +208,7 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 		if room.Hide {
 			continue
 		}
-		if !room.Known && group.NumTotalInAllSlots == 0 {
+		if !room.AlwaysShow && group.NumTotalInAllSlots == 0 {
 			continue
 		}
 
@@ -264,7 +264,7 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 		if room.Hide {
 			continue
 		}
-		if !room.Known && group.NumTotalInAllSlots == 0 {
+		if !room.AlwaysShow && group.NumTotalInAllSlots == 0 {
 			continue
 		}
 
