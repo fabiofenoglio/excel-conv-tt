@@ -75,5 +75,6 @@ func buildNewRoom(code string, name string) Room {
 		Hide:                           knownRoom.Hide,
 		GroupActivities:                knownRoom.GroupActivities,
 		ShowActivityNamesInside:        knownRoom.ShowActivityNamesInside,
+		AlwaysShow:                     knownRoom.AlwaysShow,
 	}
 }

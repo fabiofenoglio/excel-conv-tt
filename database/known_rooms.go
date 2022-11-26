@@ -24,6 +24,7 @@ func init() {
 		BackgroundColor: "#C8C7F9",
 		Slots:           6,
 		PreferredOrder:  -8,
+		AlwaysShow:      true,
 	}, KnownRoom{
 		Code:                 "pranzo",
 		Name:                 "Pranzo",
@@ -31,6 +32,7 @@ func init() {
 		Slots:                4,
 		AllowMissingOperator: true,
 		PreferredOrder:       -7,
+		AlwaysShow:           true,
 	}, KnownRoom{
 		Code:                           "planetario",
 		Name:                           "Planetario",
@@ -41,6 +43,7 @@ func init() {
 		ShowActivityNamesAsAnnotations: false,
 		ShowActivityNamesInside:        true,
 		GroupActivities:                true,
+		AlwaysShow:                     true,
 	}, KnownRoom{
 		Code:                           "aula1",
 		Aliases:                        []string{"auladidattica1", "lab1", "laboratorio1", "laboratoriodidattico1"},
@@ -51,6 +54,7 @@ func init() {
 		ShowActivityNamesAsAnnotations: false,
 		ShowActivityNamesInside:        true,
 		GroupActivities:                true,
+		AlwaysShow:                     true,
 	}, KnownRoom{
 		Code:                           "aula2",
 		Aliases:                        []string{"auladidattica2", "lab2", "laboratorio2", "laboratoriodidattico2"},
@@ -61,6 +65,18 @@ func init() {
 		ShowActivityNamesAsAnnotations: false,
 		ShowActivityNamesInside:        true,
 		GroupActivities:                true,
+		AlwaysShow:                     true,
+	}, KnownRoom{
+		Code:                           "terrazza",
+		Aliases:                        []string{"terrazzo"},
+		Name:                           "Terrazza",
+		BackgroundColor:                "#C7E8B5",
+		Slots:                          3,
+		PreferredOrder:                 -3,
+		ShowActivityNamesAsAnnotations: false,
+		ShowActivityNamesInside:        true,
+		GroupActivities:                true,
+		AlwaysShow:                     false,
 	})
 }
 

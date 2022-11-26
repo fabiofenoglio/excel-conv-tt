@@ -14,4 +14,5 @@ type KnownRoom struct {
 	ShowActivityNamesInside        bool
 	Hide                           bool
 	GroupActivities                bool
+	AlwaysShow                     bool
 }
