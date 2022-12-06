@@ -110,6 +110,14 @@ func attemptAutoUpdate(envConfig config.EnvConfig, sentryAvailable bool) {
 
 	log.Debugf("la versione remota è %s, quella locale %s", remoteVersion.Version.String(), v.String())
 
+	if remoteVersion.Version.Equals(v) {
+		// latest version is the same as current version. It means current binary is up-to-date.
+		log.Debugf("già aggiornato alla versione più recente: %s", githubVersion)
+		return
+	}
+
+	log.Infof("ATTENZIONE: verifica dell'aggiornamento in corso ...")
+
 	latest, err := up.UpdateSelf(v, githubRepo)
 	if err != nil {
 		fail(err, "errore nell'aggiornamento automatico")
@@ -121,8 +129,6 @@ func attemptAutoUpdate(envConfig config.EnvConfig, sentryAvailable bool) {
 		log.Debugf("già aggiornato alla versione più recente: %s", githubVersion)
 		return
 	}
-
-	log.Infof("ATTENZIONE: verifica dell'aggiornamento in corso ...")
 
 	log.Info("******************************")
 	log.Infof("il programma è stato aggiornato automaticamente alla versione più recente: %s", latest.Version)
