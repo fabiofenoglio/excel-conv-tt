@@ -7,10 +7,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/blang/semver"
 	aggregator2 "github.com/fabiofenoglio/excelconv/aggregator/v2"
 	parser2 "github.com/fabiofenoglio/excelconv/parser/v2"
 	"github.com/fabiofenoglio/excelconv/reader/v2"
 	excelwriter2 "github.com/fabiofenoglio/excelconv/writer/excel/v2"
+	"github.com/fabiofenoglio/go-github-selfupdate/selfupdate"
 	"github.com/getsentry/sentry-go"
 	"github.com/jessevdk/go-flags"
 	"github.com/pkg/errors"
@@ -22,53 +24,147 @@ import (
 	jsonwriter2 "github.com/fabiofenoglio/excelconv/writer/json/v2"
 )
 
-const (
-	internalVersion = "004"
-)
+func logErrorWaitAndExit(err error) {
+	logger.GetLogger().Error(err.Error())
+	//time.Sleep(time.Second * 20)
+	waitForUserPress()
+	os.Exit(1)
+}
+
+func waitForUserPress() {
+	fmt.Println("\nPREMI UN TASTO PER CONTINUARE ...")
+	fmt.Scanln()
+}
 
 func main() {
-	log := logger.GetLogger()
-
-	fail := func(e error) {
-		log.Error(e.Error())
-		time.Sleep(time.Second * 10)
-		os.Exit(1)
-	}
-
 	envConfig, err := config.Get()
 	if err != nil {
-		fail(err)
+		logErrorWaitAndExit(err)
 		return
 	}
 
-	sentryAvailable := false
-	if envConfig.SentryDSN != "" {
-		err = sentry.Init(sentry.ClientOptions{
-			Dsn:              envConfig.SentryDSN,
-			TracesSampleRate: 1.0,
-			Environment:      envConfig.Environment,
-		})
-		if err != nil {
-			log.Error(errors.Wrap(err, "error setting up error watch"))
-		} else {
-			sentryAvailable = true
-		}
+	runWithEnv(envConfig)
+}
+
+func setupSentry(envConfig config.EnvConfig) (bool, error) {
+	if envConfig.SentryDSN == "" {
+		return false, nil
 	}
 
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn:              envConfig.SentryDSN,
+		TracesSampleRate: 1.0,
+		Environment:      envConfig.Environment,
+	})
+	if err != nil {
+		return false, errors.Wrap(err, "error setting up error watch")
+	}
+
+	return true, nil
+}
+
+func withCustomSentryScope(task func(scope *sentry.Scope)) {
+	sentry.WithScope(func(scope *sentry.Scope) {
+		scope.SetExtra("githubVersion", githubVersion)
+		task(scope)
+	})
+}
+
+func attemptAutoUpdate(envConfig config.EnvConfig, sentryAvailable bool) {
+	log := logger.GetLogger()
+	if envConfig.SkipAutoUpdate {
+		log.Info("skipping auto update because of env configuration")
+		return
+	}
+
+	fail := func(e error, context string) {
+		if sentryAvailable {
+			withCustomSentryScope(func(scope *sentry.Scope) {
+				sentry.CaptureException(errors.Wrap(e, context))
+			})
+			log.Info("l'errore è stato segnalato automaticamente")
+		}
+		log.WithError(e).Error(context)
+	}
+
+	v := semver.MustParse(githubVersion)
+	up, err := selfupdate.NewUpdater(selfupdate.Config{
+		BinaryName: githubBinaryName,
+	})
+
+	if err != nil {
+		fail(err, "errore nella preparazione per la verifica della versione")
+		return
+	}
+
+	remoteVersion, found, err := up.DetectLatest(githubRepo)
+	if err != nil {
+		fail(err, "errore nella verifica della versione")
+		return
+	}
+	if !found {
+		fail(errors.New("nessuna sorgente disponibile per la verifica dell'aggiornamento"),
+			"errore nella verifica della versione")
+		return
+	}
+
+	log.Debugf("la versione remota è %s, quella locale %s", remoteVersion.Version.String(), v.String())
+
+	latest, err := up.UpdateSelf(v, githubRepo)
+	if err != nil {
+		fail(err, "errore nell'aggiornamento automatico")
+		return
+	}
+
+	if latest.Version.Equals(v) {
+		// latest version is the same as current version. It means current binary is up-to-date.
+		log.Debugf("già aggiornato alla versione più recente: %s", githubVersion)
+		return
+	}
+
+	log.Info("******************************")
+	log.Infof("il programma è stato aggiornato automaticamente alla versione più recente: %s", latest.Version)
+	fmt.Println("")
+	log.Infof(latest.ReleaseNotes)
+	fmt.Println("")
+	log.Info("ATTENZIONE: è necessario avviare nuovamente il programma per eseguirlo con la nuova versione")
+
+	if sentryAvailable {
+		withCustomSentryScope(func(scope *sentry.Scope) {
+			scope.SetLevel(sentry.LevelInfo)
+			scope.SetExtra("oldVersion", v.String())
+			scope.SetExtra("newVersion", latest.Version.String())
+			sentry.CaptureMessage(fmt.Sprintf("automatically updated from version %s to %s",
+				v.String(), latest.Version.String()))
+		})
+	}
+
+	waitForUserPress()
+	os.Exit(0)
+}
+
+func runWithEnv(envConfig config.EnvConfig) {
+	log := logger.GetLogger()
+
+	sentryAvailable, err := setupSentry(envConfig)
+	if err != nil {
+		log.Error(errors.Wrap(err, "error setting up error watch"))
+	}
 	if sentryAvailable {
 		defer sentry.Flush(2 * time.Second)
+	}
 
-		fail = func(e error) {
-			log.Error(e.Error())
-			sentry.WithScope(func(scope *sentry.Scope) {
-				scope.SetExtra("internalVersion", internalVersion)
+	fail := func(e error) {
+		if sentryAvailable {
+			withCustomSentryScope(func(scope *sentry.Scope) {
 				sentry.CaptureException(e)
 			})
 			log.Info("l'errore è stato segnalato automaticamente")
-			time.Sleep(time.Second * 10)
-			os.Exit(1)
 		}
+		logErrorWaitAndExit(e)
 	}
+
+	attemptAutoUpdate(envConfig, sentryAvailable)
 
 	var args config.Args
 	_, err = flags.Parse(&args)
@@ -94,15 +190,12 @@ func main() {
 	if err != nil {
 		fail(err)
 		return
-	} else {
-		if sentryAvailable {
-			sentry.WithScope(func(scope *sentry.Scope) {
-				scope.SetLevel(sentry.LevelInfo)
-				scope.SetExtra("arguments", args)
-				scope.SetExtra("internalVersion", internalVersion)
-				sentry.CaptureMessage("successful execution")
-			})
-		}
+	} else if sentryAvailable {
+		withCustomSentryScope(func(scope *sentry.Scope) {
+			scope.SetLevel(sentry.LevelInfo)
+			scope.SetExtra("arguments", args)
+			sentry.CaptureMessage("successful execution")
+		})
 	}
 }
 

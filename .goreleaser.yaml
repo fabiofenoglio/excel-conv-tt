@@ -38,13 +38,10 @@ changelog:
       - '^test:'
 announce:
   smtp:
-    enabled: true
+    enabled: false
     from: "___SMTP_FROM___"
     to:
-      - "___SMTP_TARGET_0___"
-      - "___SMTP_TARGET_1___"
-      - "___SMTP_TARGET_2___"
-      - "___SMTP_TARGET_3___"
+      - "info@fabiofenoglio.it"
     body_template: >
       Ultime release disponibili all'indirizzo: https://github.com/fabiofenoglio/excel-conv-tt/releases
       
@@ -57,3 +54,5 @@ source:
 # modelines, feel free to remove those if you don't want/use them:
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
 # vim: set ts=2 sw=2 tw=0 fo=cnqoj
+
+# disabled:   - "___SMTP_TARGET_0___"  - "___SMTP_TARGET_1___"  - "___SMTP_TARGET_2___"   - "___SMTP_TARGET_3___"

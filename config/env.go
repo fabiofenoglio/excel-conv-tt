@@ -16,8 +16,9 @@ var (
 )
 
 type EnvConfig struct {
-	SentryDSN   string
-	Environment string
+	SentryDSN      string
+	Environment    string
+	SkipAutoUpdate bool
 }
 
 func Get() (EnvConfig, error) {
@@ -33,9 +34,15 @@ func Get() (EnvConfig, error) {
 		return EnvConfig{}, err
 	}
 
+	skipAutoUpdateRaw := getOrDefault("SKIP_AUTO_UPDATE", "false")
+	if err != nil {
+		return EnvConfig{}, err
+	}
+
 	return EnvConfig{
-		SentryDSN:   sentryDSN,
-		Environment: envName,
+		SentryDSN:      sentryDSN,
+		Environment:    envName,
+		SkipAutoUpdate: skipAutoUpdateRaw == "true",
 	}, nil
 }
 
