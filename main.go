@@ -122,6 +122,8 @@ func attemptAutoUpdate(envConfig config.EnvConfig, sentryAvailable bool) {
 		return
 	}
 
+	log.Infof("ATTENZIONE: verifica dell'aggiornamento in corso ...")
+
 	log.Info("******************************")
 	log.Infof("il programma è stato aggiornato automaticamente alla versione più recente: %s", latest.Version)
 	fmt.Println("")
