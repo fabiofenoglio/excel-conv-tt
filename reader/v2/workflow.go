@@ -2,7 +2,6 @@ package reader
 
 import (
 	"math/rand"
-	"time"
 
 	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/getsentry/sentry-go"
@@ -47,7 +46,6 @@ func Execute(ctx config.WorkflowContext, input Input) (Output, error) {
 	}
 
 	// randomizer: randomize rows to enforce full sorting
-	rand.Seed(time.Now().UnixNano())
 	rand.Shuffle(len(rows), func(i, j int) { rows[i], rows[j] = rows[j], rows[i] })
 
 	return ToOutput(rows), nil

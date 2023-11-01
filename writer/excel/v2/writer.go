@@ -55,6 +55,9 @@ func (w *WriterImpl) Write(ctx config.WorkflowContext, parsed aggregator2.Output
 
 	groupedByStartDate := parsed.Days
 	log.Infof("found activities spanning %d different days", len(groupedByStartDate))
+	if len(groupedByStartDate) == 0 {
+		return nil, errors.New("nessun dato valido presente nel file di input")
+	}
 
 	f := excelize.NewFile()
 
@@ -77,8 +80,15 @@ func (w *WriterImpl) Write(ctx config.WorkflowContext, parsed aggregator2.Output
 	startingCell := excel.NewCell(sheetName, 2, 1)
 
 	// Rename the default sheet and set it as active
-	f.SetSheetName("Sheet1", startingCell.SheetName())
-	f.SetActiveSheet(f.GetSheetIndex(startingCell.SheetName()))
+	if err := f.SetSheetName("Sheet1", startingCell.SheetName()); err != nil {
+		return nil, fmt.Errorf("error setting sheet name: %w", err)
+	}
+
+	index, err := f.GetSheetIndex(startingCell.SheetName())
+	if err != nil {
+		return nil, err
+	}
+	f.SetActiveSheet(index)
 
 	if err := f.SetRowHeight(startingCell.SheetName(), 1, 20); err != nil {
 		return nil, err
