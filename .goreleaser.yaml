@@ -37,7 +37,7 @@ changelog:
       - '^docs:'
       - '^test:'
 announce:
-  smtp:
+  smtp: # TODO: rollback changes
     enabled: false
     from: "___SMTP_FROM___"
     to:
