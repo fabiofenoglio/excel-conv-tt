@@ -15,17 +15,11 @@ builds:
       - windows
       - darwin
 archives:
-  - replacements:
-      darwin: Darwin
-      linux: Linux
-      windows: Windows
-      386: i386
-      amd64: amd64
-    # Archive format. Valid options are `tar.gz`, `tar.xz`, `tar`, `gz`, `zip` and `binary`.
-    # If format is `binary`, no archives are created and the binaries are instead
-    # uploaded directly.
-    # Default is `tar.gz`.
-    format: binary
+  # Archive format. Valid options are `tar.gz`, `tar.xz`, `tar`, `gz`, `zip` and `binary`.
+  # If format is `binary`, no archives are created and the binaries are instead
+  # uploaded directly.
+  # Default is `tar.gz`.
+  format: binary
 checksum:
   name_template: 'checksums.txt'
 snapshot:
