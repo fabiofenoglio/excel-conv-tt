@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -35,14 +34,6 @@ func Get() (EnvConfig, error) {
 		Environment:    envName,
 		SkipAutoUpdate: skipAutoUpdateRaw == "true",
 	}, nil
-}
-
-func get(key string) (string, error) {
-	v := getOrDefault(key, "")
-	if v == "" {
-		return "", errors.New("missing configuration value: " + key)
-	}
-	return v, nil
 }
 
 func getOrDefault(key string, defaultValue string) string {
