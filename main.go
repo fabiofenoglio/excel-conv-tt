@@ -72,6 +72,13 @@ func withCustomSentryScope(task func(scope *sentry.Scope)) {
 
 func attemptAutoUpdate(envConfig config.EnvConfig, sentryAvailable bool) {
 	log := logger.GetLogger()
+
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Errorf("unexpected error during autoupdate: %v", recovered)
+		}
+	}()
+
 	if envConfig.SkipAutoUpdate {
 		log.Info("skipping auto update because of env configuration")
 		return
@@ -191,7 +198,7 @@ func runWithEnv(envConfig config.EnvConfig) {
 	// parse the specified input file
 	ctx := context.Background()
 	span := sentry.StartSpan(ctx, "process",
-		sentry.TransactionName(fmt.Sprintf("process: %s", args.PositionalArgs.InputFile)))
+		sentry.WithTransactionName(fmt.Sprintf("process: %s", args.PositionalArgs.InputFile)))
 	defer span.Finish()
 
 	err = runWithPanicProtection(span.Context(), args, envConfig, log)

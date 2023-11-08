@@ -5,7 +5,6 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/pkg/errors"
 )
 
 var (
@@ -24,34 +23,17 @@ type EnvConfig struct {
 func Get() (EnvConfig, error) {
 	_ = godotenv.Load(".env")
 
-	sentryDSN, err := get("SENTRY_DSN")
-	if err != nil {
-		return EnvConfig{}, err
-	}
-
-	envName, err := get("ENV")
-	if err != nil {
-		return EnvConfig{}, err
-	}
+	sentryDSN := getOrDefault("SENTRY_DSN", "")
 
 	skipAutoUpdateRaw := getOrDefault("SKIP_AUTO_UPDATE", "false")
-	if err != nil {
-		return EnvConfig{}, err
-	}
+
+	envName := getOrDefault("ENV", "local")
 
 	return EnvConfig{
 		SentryDSN:      sentryDSN,
 		Environment:    envName,
 		SkipAutoUpdate: skipAutoUpdateRaw == "true",
 	}, nil
-}
-
-func get(key string) (string, error) {
-	v := getOrDefault(key, "")
-	if v == "" {
-		return "", errors.New("missing configuration value: " + key)
-	}
-	return v, nil
 }
 
 func getOrDefault(key string, defaultValue string) string {

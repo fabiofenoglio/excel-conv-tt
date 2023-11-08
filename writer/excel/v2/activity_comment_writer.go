@@ -1,7 +1,6 @@
 package excel
 
 import (
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -195,20 +194,15 @@ func buildContentOfActivityCommentForSingleGroupOfGroupedActivity(c WriteContext
 }
 
 func addCommentToCell(f *excelize.File, cell excel.Cell, content string) error {
-	type serializable struct {
-		Text string `json:"text"`
-	}
-	v := serializable{
-		Text: "---\n" + content,
+	commentText := content
+	if len(commentText) >= 32000 {
+		commentText = commentText[:31998]
 	}
 
-	if len(v.Text) >= 32000 {
-		v.Text = v.Text[:31998]
-	}
-
-	serialized, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-	return f.AddComment(cell.SheetName(), cell.Code(), string(serialized))
+	// TODO: check for better format
+	return f.AddComment(cell.SheetName(), excelize.Comment{
+		Cell:   cell.Code(),
+		Author: "Excel Converter",
+		Text:   commentText,
+	})
 }
