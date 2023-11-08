@@ -48,10 +48,11 @@ func HydrateGroups(
 						NumFree:         row.numFree,
 						NumAccompanying: row.numAccompanying,
 					},
-					ClassTeacher:  row.classTeacher,
-					ClassRefEmail: row.classRefEmail,
-					BookingNotes:  row.BookingNote,
-					OperatorNotes: row.OperatorNote,
+					ClassTeacher:        row.classTeacher,
+					ClassRefEmail:       row.classRefEmail,
+					BookingNotes:        row.BookingNote,
+					OperatorNotes:       row.OperatorNote,
+					SpecialProjectNotes: row.SpecialProjectName,
 				}
 				outGroups = append(outGroups, newGroup)
 				groupsIndex[newGroup.Code] = len(outGroups) - 1
@@ -88,6 +89,9 @@ func HydrateGroups(
 				}
 				if row.BookingNote != "" && !strings.Contains(toEnrich.BookingNotes, row.BookingNote) {
 					toEnrich.BookingNotes = strings.TrimPrefix(toEnrich.BookingNotes+"\n"+row.BookingNote, "\n")
+				}
+				if row.SpecialProjectName != "" && !strings.Contains(toEnrich.SpecialProjectNotes, row.SpecialProjectName) {
+					toEnrich.SpecialProjectNotes = strings.TrimPrefix(toEnrich.SpecialProjectNotes+"\n"+row.SpecialProjectName, "\n")
 				}
 				if row.classTeacher != "" && toEnrich.ClassTeacher == "" {
 					toEnrich.ClassTeacher = row.classTeacher

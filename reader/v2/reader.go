@@ -79,7 +79,7 @@ func ReadFromFile(ctx config.WorkflowContext, input string) ([]Row, error) {
 			}
 
 		} else {
-			log.Warnf("column %s with header '%s' does not map to any known field", currentHeaderCell.ColumnName(), cell)
+			log.Debugf("column %s with header '%s' does not map to any known field", currentHeaderCell.ColumnName(), cell)
 		}
 
 		currentHeaderCell.MoveRight(1)

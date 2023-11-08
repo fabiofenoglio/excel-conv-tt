@@ -31,11 +31,14 @@ changelog:
       - '^docs:'
       - '^test:'
 announce:
-  smtp: # TODO: rollback changes
-    enabled: false
+  smtp:
+    enabled: true
     from: "___SMTP_FROM___"
     to:
-      - "info@fabiofenoglio.it"
+      - "___SMTP_TARGET_0___"
+      - "___SMTP_TARGET_1___"
+      - "___SMTP_TARGET_2___"
+      - "___SMTP_TARGET_3___"
     body_template: >
       Ultime release disponibili all'indirizzo: https://github.com/fabiofenoglio/excel-conv-tt/releases
       

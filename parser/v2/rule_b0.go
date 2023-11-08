@@ -9,13 +9,10 @@ import (
 	"github.com/fabiofenoglio/excelconv/config"
 )
 
-func ApplyRuleB0Level(
-	ctx config.WorkflowContext,
-	rows []Row,
-) ([]Row, error) {
+func ApplyRuleB0Level(ctx config.WorkflowContext, rows []Row, groups []VisitingGroup) ([]Row, []VisitingGroup, error) {
 	rows, err := applyRuleB0LevelRule0(ctx, rows)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	/*
@@ -25,7 +22,12 @@ func ApplyRuleB0Level(
 		}
 	*/
 
-	return rows, nil
+	groups, err = applyRuleB0LevelRule2(ctx, groups)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return rows, groups, nil
 }
 
 func applyRuleB0LevelRule0(
@@ -113,9 +115,9 @@ func applyRuleB0LevelRule0(
 			row.activityRawString = strings.TrimSpace(matches[2])
 		}
 
-		logger.Infof("rewrote activity %v from [%s] in room [%s] to [%s]",
+		logger.Debugf("rewrote activity %v from [%s] in room [%s] to [%s]",
 			rows[i].ID, rows[i].activityRawString, rows[i].RoomCode, row.activityRawString)
-		logger.Infof("rewrote activity %v from [%s] in room [%s] to [%s]",
+		logger.Debugf("rewrote activity %v from [%s] in room [%s] to [%s]",
 			rows[matchingIndex].ID, rows[matchingIndex].activityRawString, rows[matchingIndex].RoomCode, matchingRow.activityRawString)
 
 		rows[i] = row
@@ -171,4 +173,39 @@ func applyRuleB0LevelRule1(
 	}
 
 	return rows, nil
+}
+
+func applyRuleB0LevelRule2(
+	ctx config.WorkflowContext,
+	groups []VisitingGroup,
+) ([]VisitingGroup, error) {
+
+	for i, group := range groups {
+		/*
+			A) Progetto speciale
+			se colonna AH contiene una scritta qualunque, nel file excel finale:
+			- il codice del gruppo (1-a, 1-b ecc...) è incorniciato di viola
+			- nel commento compaiono le parole della cella
+			Evidenza sul nome (2-a) + commento
+		*/
+		if strings.TrimSpace(group.SpecialProjectNotes) != "" {
+			group.Highlights = append(group.Highlights, HighlightSpecialProject)
+		}
+
+		/*
+			B) Parola "special" nelle note
+			se nelle colonne AI e AJ c'è la scritta special, nel file excel finale:
+			- il codice del gruppo (1-a, 1-b ecc...) è incorniciato di azzurro
+			- nel commento compare tutta la nota (ma già lo fa)
+		*/
+		if strings.Contains(strings.ToLower(group.OperatorNotes), "special") ||
+			strings.Contains(strings.ToLower(group.BookingNotes), "special") {
+
+			group.Highlights = append(group.Highlights, HighlightSpecialNotes)
+		}
+
+		groups[i] = group
+	}
+
+	return groups, nil
 }

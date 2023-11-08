@@ -26,6 +26,7 @@ type Row struct {
 	Bus                  string `column:"bus"`
 	PaymentAdvance       string `column:"acconti"`
 	PaymentAdvanceStatus string `column:"stato acconti"`
+	SpecialProjectName   string `column:"nome progetto speciale"`
 
 	// campi che verranno convertiti prima di essere esposti
 

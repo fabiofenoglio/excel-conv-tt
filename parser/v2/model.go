@@ -4,6 +4,13 @@ import (
 	"strings"
 )
 
+type HighlightReason string
+
+var (
+	HighlightSpecialProject HighlightReason = "special_project"
+	HighlightSpecialNotes   HighlightReason = "special_notes"
+)
+
 type Room struct {
 	Code                           string `json:"code"`
 	Name                           string `json:"name"`
@@ -48,14 +55,16 @@ type ActivityType struct {
 }
 
 type VisitingGroup struct {
-	Code            string
-	SchoolCode      string
-	SchoolClassCode string
-	Composition     GroupComposition
-	ClassTeacher    string
-	ClassRefEmail   string
-	BookingNotes    string
-	OperatorNotes   string
+	Code                string
+	SchoolCode          string
+	SchoolClassCode     string
+	Composition         GroupComposition
+	ClassTeacher        string
+	ClassRefEmail       string
+	BookingNotes        string
+	OperatorNotes       string
+	SpecialProjectNotes string
+	Highlights          []HighlightReason
 }
 
 type School struct {

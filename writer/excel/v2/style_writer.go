@@ -5,6 +5,11 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
+type designatedStyling struct {
+	style *RegisteredStyleV2
+	box   excel.CellBox
+}
+
 func applyStyleToBox(f *excelize.File, style *RegisteredStyleV2, box excel.CellBox) error {
 	sn := box.TopLeft().SheetName()
 	if box.Width() == 1 && box.Height() == 1 {

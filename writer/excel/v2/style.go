@@ -6,7 +6,7 @@ import (
 
 type StyleDefV2 struct {
 	Alignment *excelize.Alignment
-	Fill      excelize.Fill
+	Fill      *excelize.Fill
 	Border    *StyleDefV2Border
 	Font      *excelize.Font
 	AsWarning func(s *excelize.Style)
@@ -22,9 +22,14 @@ type StyleDefV2Border struct {
 }
 
 func (d *StyleDefV2) base() *excelize.Style {
+	fill := excelize.Fill{}
+	if d.Fill != nil {
+		fill = *d.Fill
+	}
+
 	return &excelize.Style{
 		Alignment: d.Alignment,
-		Fill:      d.Fill,
+		Fill:      fill,
 		Font:      d.Font,
 	}
 }

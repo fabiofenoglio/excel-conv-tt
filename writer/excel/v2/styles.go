@@ -58,7 +58,7 @@ var (
 			Horizontal: "center",
 			Vertical:   "center",
 		},
-		Fill: excelize.Fill{
+		Fill: &excelize.Fill{
 			Type:    "pattern",
 			Color:   []string{"#DDDDDD"},
 			Pattern: 1,
@@ -71,7 +71,7 @@ var (
 			Horizontal: "center",
 			Vertical:   "center",
 		},
-		Fill: excelize.Fill{},
+		Fill: &excelize.Fill{},
 		Border: &StyleDefV2Border{
 			Color: "333333", Style: 4,
 			Top: true, Bottom: true, Left: true, Right: true,
@@ -120,7 +120,8 @@ var (
 			WrapText: true,
 		},
 		Border: &StyleDefV2Border{
-			Color: "333333", Style: 4,
+			Color:  "333333",
+			Style:  4,
 			Bottom: true,
 		},
 		Font: defaultFontBuilder(&FontOverride{
@@ -135,8 +136,29 @@ var (
 		},
 		Font: defaultFontBuilder(nil),
 		Border: &StyleDefV2Border{
-			Color: "333333", Style: 1,
+			Color:  "333333",
+			Style:  1,
 			Bottom: true,
+		},
+	}
+	highlightForSpecialProjectStyle = &StyleDefV2{
+		Border: &StyleDefV2Border{
+			Color:  "#9900cc",
+			Style:  5,
+			Bottom: true,
+			Left:   true,
+			Top:    true,
+			Right:  true,
+		},
+	}
+	highlightForSpecialNotesStyle = &StyleDefV2{
+		Border: &StyleDefV2Border{
+			Color:  "#0066ff",
+			Style:  5,
+			Bottom: true,
+			Left:   true,
+			Top:    true,
+			Right:  true,
 		},
 	}
 
@@ -149,7 +171,7 @@ var (
 			Horizontal: "center",
 			Vertical:   "center",
 		},
-		Fill: excelize.Fill{
+		Fill: &excelize.Fill{
 			Type:    "pattern",
 			Color:   []string{"#48752C"},
 			Pattern: 1,
@@ -169,7 +191,7 @@ var (
 			Horizontal: "left",
 			Vertical:   "center",
 		},
-		Fill: excelize.Fill{
+		Fill: &excelize.Fill{
 			Type:    "pattern",
 			Color:   []string{"#FFFFFF"},
 			Pattern: 1,
@@ -188,7 +210,7 @@ var (
 			Horizontal: "right",
 			Vertical:   "center",
 		},
-		Fill: excelize.Fill{
+		Fill: &excelize.Fill{
 			Type:    "pattern",
 			Color:   []string{"#FFFFFF"},
 			Pattern: 1,
@@ -204,7 +226,7 @@ var (
 			Horizontal: "center",
 			Vertical:   "center",
 		},
-		Fill: excelize.Fill{
+		Fill: &excelize.Fill{
 			Type:    "pattern",
 			Color:   []string{"#E02222"},
 			Pattern: 1,
@@ -226,7 +248,7 @@ var (
 			Horizontal: "center",
 			Vertical:   "center",
 		},
-		Fill: excelize.Fill{
+		Fill: &excelize.Fill{
 			Type:    "pattern",
 			Color:   []string{"#EEEEEE"},
 			Pattern: 1,
@@ -248,7 +270,7 @@ var (
 			Vertical:   "center",
 			WrapText:   true,
 		},
-		Fill: excelize.Fill{
+		Fill: &excelize.Fill{
 			Type:    "pattern",
 			Color:   []string{"#E02222"},
 			Pattern: 1,
@@ -271,7 +293,7 @@ var (
 			Vertical:   "center",
 			WrapText:   true,
 		},
-		Fill: excelize.Fill{
+		Fill: &excelize.Fill{
 			Type:    "pattern",
 			Color:   []string{"#EEEEEE"},
 			Pattern: 1,
@@ -352,7 +374,7 @@ func buildForRoom(color string) *StyleDefV2 {
 			Horizontal: "center",
 			Vertical:   "center",
 		},
-		Fill: excelize.Fill{
+		Fill: &excelize.Fill{
 			Type:    "pattern",
 			Color:   []string{"#FFFFFF"},
 			Pattern: 1,
@@ -378,7 +400,7 @@ func buildForOperator(color string) *StyleDefV2 {
 			Vertical:   "center",
 			WrapText:   true,
 		},
-		Fill: excelize.Fill{
+		Fill: &excelize.Fill{
 			Type:    "pattern",
 			Color:   []string{color},
 			Pattern: 1,

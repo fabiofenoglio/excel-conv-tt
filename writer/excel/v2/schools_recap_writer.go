@@ -2,6 +2,7 @@ package excel
 
 import (
 	"fmt"
+	"github.com/fabiofenoglio/excelconv/parser/v2"
 	"regexp"
 	"strings"
 
@@ -109,6 +110,7 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 
 		// write group display code in first cell
 		toWrite := schoolGroup.DisplayCode
+		displayCodePosition := cursor.Copy()
 		if err := f.MergeCell(cursor.SheetName(), cursor.Code(), cursor.AtBottom(1).Code()); err != nil {
 			return err
 		}
@@ -198,12 +200,15 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 
 		// write notes and contacts in the same cell
 		toWrite = ""
-		if groupRef.BookingNotes != "" {
-			toWrite += "⚠️ " + groupRef.BookingNotes + "\n"
+		addNote := func(input string) {
+			if input != "" && !strings.Contains(toWrite, input) {
+				toWrite += "⚠️ " + input + "\n"
+			}
 		}
-		if groupRef.OperatorNotes != "" {
-			toWrite += "⚠️ " + groupRef.OperatorNotes + "\n"
-		}
+		addNote(groupRef.SpecialProjectNotes)
+		addNote(groupRef.BookingNotes)
+		addNote(groupRef.OperatorNotes)
+
 		toWrite = strings.TrimSuffix(toWrite, "\n")
 		didWriteNotes := false
 		if toWrite != "" {
@@ -263,6 +268,7 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 				c.styleRegister.SchoolRecapNotesStyle().SingleCell()); err != nil {
 				return err
 			}
+
 			if err := f.SetCellStyle(cursor.SheetName(),
 				cursor.AtColumn(startCell.Column()).AtRight(16).AtBottom(1).Code(),
 				cursor.AtColumn(rightColumn).AtBottom(1).Code(),
@@ -278,6 +284,16 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 			}
 		}
 
+		if len(groupRef.Highlights) > 0 {
+			styleForHighlight := highlightsToStyle(c, groupRef.Highlights)
+			if styleForHighlight != nil {
+				merged := c.styleRegister.Merge(c.styleRegister.SchoolRecapStyle(), styleForHighlight)
+				if err := applyStyleToBox(f, merged, excel.NewCellBox(displayCodePosition, displayCodePosition.AtBottom(1))); err != nil {
+					return err
+				}
+			}
+		}
+
 		cursor.MoveBottom(2)
 	}
 
@@ -288,4 +304,21 @@ func writeSchoolsForDay(c WriteContext, groups []aggregator2.VisitingGroupInDay,
 	}
 
 	return nil
+}
+
+func highlightsToStyle(c WriteContext, highlights []parser.HighlightReason) *RegisteredStyleV2 {
+	if len(highlights) == 0 {
+		return nil
+	}
+
+	for _, highlight := range highlights {
+		if highlight == parser.HighlightSpecialProject {
+			return c.styleRegister.HighlightForSpecialProjectStyle()
+		}
+		if highlight == parser.HighlightSpecialNotes {
+			return c.styleRegister.HighlightForSpecialNotesStyle()
+		}
+	}
+
+	return c.styleRegister.SchoolRecapNotesStyle()
 }
