@@ -24,20 +24,11 @@ type EnvConfig struct {
 func Get() (EnvConfig, error) {
 	_ = godotenv.Load(".env")
 
-	sentryDSN, err := get("SENTRY_DSN")
-	if err != nil {
-		return EnvConfig{}, err
-	}
-
-	envName, err := get("ENV")
-	if err != nil {
-		return EnvConfig{}, err
-	}
+	sentryDSN := getOrDefault("SENTRY_DSN", "")
 
 	skipAutoUpdateRaw := getOrDefault("SKIP_AUTO_UPDATE", "false")
-	if err != nil {
-		return EnvConfig{}, err
-	}
+
+	envName := getOrDefault("ENV", "local")
 
 	return EnvConfig{
 		SentryDSN:      sentryDSN,
