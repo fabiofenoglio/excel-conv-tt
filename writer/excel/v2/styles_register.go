@@ -160,6 +160,14 @@ func (r *StyleRegister) SchoolRecapContactStyle() *RegisteredStyleV2 {
 	return r.registerIfNeeded(schoolRecapContactStyle)
 }
 
+func (r *StyleRegister) HighlightForSpecialProjectStyle() *RegisteredStyleV2 {
+	return r.registerIfNeeded(highlightForSpecialProjectStyle)
+}
+
+func (r *StyleRegister) HighlightForSpecialNotesStyle() *RegisteredStyleV2 {
+	return r.registerIfNeeded(highlightForSpecialNotesStyle)
+}
+
 func (r *StyleRegister) OperatorStyle(color string) *RegisteredStyleV2 {
 	key := "op/" + strings.ToLower(color)
 	if v, ok := r.registeredStyles[key]; ok {
@@ -186,4 +194,34 @@ func (r *StyleRegister) RoomStyle(color string) *RegisteredStyleV2 {
 	r.registeredStyles[key] = reg
 
 	return reg
+}
+
+func (r *StyleRegister) Merge(style1, style2 *RegisteredStyleV2) *RegisteredStyleV2 {
+	out := &StyleDefV2{
+		Alignment: style1.styleDef.Alignment,
+		Fill:      style1.styleDef.Fill,
+		Border:    style1.styleDef.Border,
+		Font:      style1.styleDef.Font,
+		AsWarning: style1.styleDef.AsWarning,
+	}
+
+	o := style2.styleDef
+
+	if o.Alignment != nil {
+		out.Alignment = o.Alignment
+	}
+	if o.Fill != nil {
+		out.Fill = o.Fill
+	}
+	if o.Border != nil {
+		out.Border = o.Border
+	}
+	if o.Font != nil {
+		out.Font = o.Font
+	}
+	if o.AsWarning != nil {
+		out.AsWarning = o.AsWarning
+	}
+
+	return r.registerIfNeeded(out)
 }

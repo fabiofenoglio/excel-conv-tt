@@ -383,10 +383,14 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 						return zero, err
 					}
 
+					var additionalStyles []designatedStyling
+
 					for singleActIndex, singleActivity := range act.Rows {
+						var groupRef parser2.VisitingGroup
 						toWriteForThisVisitingGroup := singleActivity.BookingCode
 						if visitingGroupRef, ok := schoolGroupsIndex[singleActivity.VisitingGroupCode]; ok {
 							toWriteForThisVisitingGroup = visitingGroupRef.DisplayCode
+							groupRef = anagraphics.VisitingGroups[visitingGroupRef.VisitingGroupCode]
 						}
 						cellForThis := actStartCell.AtRow(actEndCell.Row()).AtRight(uint(singleActIndex))
 						if err := f.SetCellValue(
@@ -395,6 +399,15 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 							toWriteForThisVisitingGroup,
 						); err != nil {
 							return zero, err
+						}
+
+						if len(groupRef.Highlights) > 0 {
+							if additionalStyle := highlightsToStyle(c, groupRef.Highlights); additionalStyle != nil {
+								additionalStyles = append(additionalStyles, designatedStyling{
+									additionalStyle,
+									excel.NewCellBox(cellForThis, cellForThis),
+								})
+							}
 						}
 
 						cellComment := buildContentOfActivityCommentForSingleGroupOfGroupedActivity(c, singleActivity)
@@ -407,6 +420,14 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 
 					if err := applyStyleToBox(f, style, excel.NewCellBox(actStartCell, actEndCell)); err != nil {
 						return zero, err
+					}
+
+					for _, additional := range additionalStyles {
+						merged := c.styleRegister.Merge(style, additional.style)
+
+						if err := applyStyleToBox(f, merged, additional.box); err != nil {
+							return zero, err
+						}
 					}
 
 					// write some comment with additional info
@@ -423,9 +444,11 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 					for slotCnt := 0; slotCnt < len(act.Rows); slotCnt++ {
 						singleAct := act.Rows[slotCnt]
 						var writeInCell string
+						var groupRef parser2.VisitingGroup
 						if singleAct.VisitingGroupCode != "" {
 							if visitingGroup, ok := schoolGroupsIndex[singleAct.VisitingGroupCode]; ok {
 								writeInCell = visitingGroup.DisplayCode
+								groupRef = anagraphics.VisitingGroups[visitingGroup.VisitingGroupCode]
 							} else {
 								writeInCell = singleAct.VisitingGroupCode
 							}
@@ -447,6 +470,12 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 								return zero, err
 							}
 						}
+
+						if len(groupRef.Highlights) > 0 {
+							if additionalStyle := highlightsToStyle(c, groupRef.Highlights); additionalStyle != nil {
+								style = c.styleRegister.Merge(style, additionalStyle)
+							}
+						}
 					}
 
 					if err := applyStyleToBox(f, style, excel.NewCellBox(actStartCell, actEndCell)); err != nil {
@@ -462,6 +491,7 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 					}
 
 					for _, singleAct := range act.Rows {
+						// TODO why not done in the other drawing branch?
 						rowPlacementMap[singleAct.ID] = excel.NewCellBox(actStartCell, actEndCell)
 					}
 				}

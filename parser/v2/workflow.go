@@ -26,17 +26,17 @@ func Execute(ctx config.WorkflowContext, rawInput reader.Output) (Output, error)
 		return Output{}, errors.Wrap(err, "errore nella lettura dei gruppi scuola")
 	}
 
-	afterRuleA0, err := ApplyRuleB0Level(ctx, rowsWithGroups)
+	rowsWithGroups, groups, err = ApplyRuleB0Level(ctx, rowsWithGroups, groups)
 	if err != nil {
 		return Output{}, errors.Wrap(err, "errore nell'applicazione delle regole di livello B0")
 	}
 
-	rowsWithActivities, activities, activityTypes, err := HydrateActivities(ctx, afterRuleA0)
+	rowsWithActivities, activities, activityTypes, err := HydrateActivities(ctx, rowsWithGroups)
 	if err != nil {
 		return Output{}, errors.Wrap(err, "errore nella lettura delle attività")
 	}
 
-	// build anagraphics index for O(1) ammortized lookup
+	// build anagraphics index for O(1) amortized lookup
 
 	anagraphics := OutputAnagraphics{
 		Rooms:          make(map[string]Room),

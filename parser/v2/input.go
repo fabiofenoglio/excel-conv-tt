@@ -23,6 +23,7 @@ type InputRow struct {
 	Bus                  string
 	PaymentAdvance       string
 	PaymentAdvanceStatus string
+	SpecialProjectName   string
 
 	// campi che verranno processati prima di essere esposti
 
@@ -73,6 +74,7 @@ func ToInputRows(rows []reader.OutputRow) []InputRow {
 			Bus:                       input.Bus,
 			PaymentAdvance:            input.PaymentAdvance,
 			PaymentAdvanceStatus:      input.PaymentAdvanceStatus,
+			SpecialProjectName:        input.SpecialProjectName,
 		})
 	}
 
