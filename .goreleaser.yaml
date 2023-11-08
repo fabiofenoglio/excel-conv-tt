@@ -19,7 +19,7 @@ archives:
   # If format is `binary`, no archives are created and the binaries are instead
   # uploaded directly.
   # Default is `tar.gz`.
-  format: binary
+  - format: binary
 checksum:
   name_template: 'checksums.txt'
 snapshot:
