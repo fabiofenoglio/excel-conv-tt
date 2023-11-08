@@ -115,9 +115,9 @@ func applyRuleB0LevelRule0(
 			row.activityRawString = strings.TrimSpace(matches[2])
 		}
 
-		logger.Infof("rewrote activity %v from [%s] in room [%s] to [%s]",
+		logger.Debugf("rewrote activity %v from [%s] in room [%s] to [%s]",
 			rows[i].ID, rows[i].activityRawString, rows[i].RoomCode, row.activityRawString)
-		logger.Infof("rewrote activity %v from [%s] in room [%s] to [%s]",
+		logger.Debugf("rewrote activity %v from [%s] in room [%s] to [%s]",
 			rows[matchingIndex].ID, rows[matchingIndex].activityRawString, rows[matchingIndex].RoomCode, matchingRow.activityRawString)
 
 		rows[i] = row

@@ -489,11 +489,10 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 							return zero, err
 						}
 					}
+				}
 
-					for _, singleAct := range act.Rows {
-						// TODO why not done in the other drawing branch?
-						rowPlacementMap[singleAct.ID] = excel.NewCellBox(actStartCell, actEndCell)
-					}
+				for _, singleAct := range act.Rows {
+					rowPlacementMap[singleAct.ID] = excel.NewCellBox(actStartCell, actEndCell)
 				}
 			}
 		}
