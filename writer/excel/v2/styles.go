@@ -161,6 +161,11 @@ var (
 			Right:  true,
 		},
 	}
+	highlightForUnconfirmedStyle = &StyleDefV2{
+		Font: defaultFontBuilder(&FontOverride{
+			Color: "#aaaaaa",
+		}),
+	}
 
 	dayHeaderStyle = &StyleDefV2{
 		Font: defaultFontBuilder(&FontOverride{

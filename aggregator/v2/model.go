@@ -55,19 +55,21 @@ type VisitingGroupInDay struct {
 }
 
 type scheduleForSingleDay struct {
-	Day            time.Time
-	Rows           []Row
-	VisitingGroups []VisitingGroupInDay
-	StartAt        time.Time
-	EndAt          time.Time
+	Day                   time.Time
+	Rows                  []Row
+	VisitingGroups        []VisitingGroupInDay
+	StartAt               time.Time
+	EndAt                 time.Time
+	NumeroAttivitaMarkers map[time.Time]int
 }
 
 type ScheduleForSingleDayWithRooms struct {
-	Day            time.Time
-	VisitingGroups []VisitingGroupInDay
-	RoomsSchedule  []ScheduleForSingleDayAndRoom
-	StartAt        time.Time
-	EndAt          time.Time
+	Day                   time.Time
+	VisitingGroups        []VisitingGroupInDay
+	RoomsSchedule         []ScheduleForSingleDayAndRoom
+	StartAt               time.Time
+	EndAt                 time.Time
+	NumeroAttivitaMarkers map[time.Time]int
 }
 
 type ScheduleForSingleDayAndRoom struct {
@@ -76,11 +78,13 @@ type ScheduleForSingleDayAndRoom struct {
 }
 
 type ScheduleForSingleDayWithRoomsAndGroupedActivities struct {
-	Day            time.Time
-	VisitingGroups []VisitingGroupInDay
-	RoomsSchedule  []ScheduleForSingleDayAndRoomWithGroupedActivities
-	StartAt        time.Time
-	EndAt          time.Time
+	Day                                   time.Time
+	VisitingGroups                        []VisitingGroupInDay
+	RoomsSchedule                         []ScheduleForSingleDayAndRoomWithGroupedActivities
+	StartAt                               time.Time
+	EndAt                                 time.Time
+	NumeroAttivitaMarkers                 map[time.Time]int
+	NumeroGruppiAttivitaConfermateMarkers map[time.Time]int
 }
 
 type ScheduleForSingleDayAndRoomWithGroupedActivities struct {
@@ -96,6 +100,7 @@ type GroupedActivity struct {
 	EndTime           time.Time
 	Rows              []OutputRow
 	FitComputationLog []string
+	AnyConfirmed      bool
 }
 
 func (g *GroupedActivity) distinct(extractor func(OutputRow) string) []string {
@@ -179,11 +184,13 @@ type ScheduleForSingleDayAndRoomSlot struct {
 // with slots and groups (NEW)
 
 type ScheduleForSingleDayWithRoomsAndGroupSlots struct {
-	Day            time.Time
-	VisitingGroups []VisitingGroupInDay
-	RoomsSchedule  []ScheduleForSingleDayAndRoomWithGroupSlots
-	StartAt        time.Time
-	EndAt          time.Time
+	Day                                   time.Time
+	VisitingGroups                        []VisitingGroupInDay
+	RoomsSchedule                         []ScheduleForSingleDayAndRoomWithGroupSlots
+	StartAt                               time.Time
+	EndAt                                 time.Time
+	NumeroAttivitaMarkers                 map[time.Time]int
+	NumeroGruppiAttivitaConfermateMarkers map[time.Time]int
 }
 
 type ScheduleForSingleDayAndRoomWithGroupSlots struct {

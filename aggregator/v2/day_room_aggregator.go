@@ -14,11 +14,12 @@ func AggregateByRooomInCompetenceDay(_ config.WorkflowContext, days []scheduleFo
 
 	for _, daySchedule := range days {
 		mapped := &ScheduleForSingleDayWithRooms{
-			Day:            daySchedule.Day,
-			VisitingGroups: daySchedule.VisitingGroups,
-			RoomsSchedule:  make([]ScheduleForSingleDayAndRoom, 0, len(anagraphicsRef.Rooms)),
-			StartAt:        daySchedule.StartAt,
-			EndAt:          daySchedule.EndAt,
+			Day:                   daySchedule.Day,
+			VisitingGroups:        daySchedule.VisitingGroups,
+			RoomsSchedule:         make([]ScheduleForSingleDayAndRoom, 0, len(anagraphicsRef.Rooms)),
+			StartAt:               daySchedule.StartAt,
+			EndAt:                 daySchedule.EndAt,
+			NumeroAttivitaMarkers: daySchedule.NumeroAttivitaMarkers,
 		}
 
 		for _, room := range anagraphicsRef.Rooms {

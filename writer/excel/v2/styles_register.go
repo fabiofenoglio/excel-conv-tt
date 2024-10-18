@@ -168,6 +168,10 @@ func (r *StyleRegister) HighlightForSpecialNotesStyle() *RegisteredStyleV2 {
 	return r.registerIfNeeded(highlightForSpecialNotesStyle)
 }
 
+func (r *StyleRegister) HighlightForUnconfirmedStyle() *RegisteredStyleV2 {
+	return r.registerIfNeeded(highlightForUnconfirmedStyle)
+}
+
 func (r *StyleRegister) OperatorStyle(color string) *RegisteredStyleV2 {
 	key := "op/" + strings.ToLower(color)
 	if v, ok := r.registeredStyles[key]; ok {
@@ -197,12 +201,20 @@ func (r *StyleRegister) RoomStyle(color string) *RegisteredStyleV2 {
 }
 
 func (r *StyleRegister) Merge(style1, style2 *RegisteredStyleV2) *RegisteredStyleV2 {
-	out := &StyleDefV2{
-		Alignment: style1.styleDef.Alignment,
-		Fill:      style1.styleDef.Fill,
-		Border:    style1.styleDef.Border,
-		Font:      style1.styleDef.Font,
-		AsWarning: style1.styleDef.AsWarning,
+	if style1 == nil && style2 == nil {
+		return nil
+	}
+
+	out := &StyleDefV2{}
+
+	if style1 != nil {
+		out = &StyleDefV2{
+			Alignment: style1.styleDef.Alignment,
+			Fill:      style1.styleDef.Fill,
+			Border:    style1.styleDef.Border,
+			Font:      style1.styleDef.Font,
+			AsWarning: style1.styleDef.AsWarning,
+		}
 	}
 
 	o := style2.styleDef

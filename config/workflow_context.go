@@ -14,6 +14,7 @@ type WorkflowContext struct {
 
 type WorkflowContextConfig struct {
 	EnableMissingOperatorsWarning bool
+	EnableUnconfirmedHighlight    bool
 }
 
 func (c *WorkflowContext) ForContext(ctx context.Context) WorkflowContext {

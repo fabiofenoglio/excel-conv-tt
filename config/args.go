@@ -10,6 +10,8 @@ type Args struct {
 
 	EnableMissingOperatorsWarning bool `long:"missing-operator-warning" description:"Enable warnings for missing operators"`
 
+	Debug bool `long:"debug" description:"Enable debug mode"`
+
 	PositionalArgs struct {
 		InputFile string `positional-arg-name:"input-file" required:"yes"`
 		Rest      []string

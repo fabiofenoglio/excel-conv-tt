@@ -30,7 +30,7 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 		fmt.Sprintf("%d", day.Day.Year())); err != nil {
 		return zero, err
 	}
-	cursor.MoveRight(1)
+	cursor.MoveRight(2)
 	cursor.MoveBottom(1)
 
 	roomColumnNumbers := make(map[string]uint)
@@ -148,6 +148,11 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 
 	numOfTimeRows := uint(0)
 	log.Debugf("writing time columns starting from %s", currentTime.String())
+
+	cumulativeRequiredAvailability := 0
+	cumulativeNumeroAtt := 0
+	cumulativeResumeAtt := ""
+
 	for {
 		effectiveTime := relativeToDay(currentTime, day.Day)
 
@@ -170,6 +175,48 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 		if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), boxCellHeight); err != nil {
 			return zero, err
 		}
+
+		forceNumeroAttRepaint := false
+		if day.NumeroGruppiAttivitaConfermateMarkers[currentTime] != 0 {
+			cumulativeRequiredAvailability += day.NumeroGruppiAttivitaConfermateMarkers[currentTime]
+		}
+		if day.NumeroAttivitaMarkers[currentTime] > 0 {
+			forceNumeroAttRepaint = true
+			cumulativeNumeroAtt = day.NumeroAttivitaMarkers[currentTime]
+		}
+
+		var resumeAtt string
+		if cumulativeNumeroAtt != 0 || cumulativeRequiredAvailability != 0 {
+			switch {
+			case cumulativeNumeroAtt != 0 && cumulativeRequiredAvailability != 0:
+				resumeAtt = fmt.Sprintf(
+					"%d / %d",
+					cumulativeRequiredAvailability,
+					cumulativeNumeroAtt,
+				)
+			case cumulativeNumeroAtt != 0:
+				resumeAtt = fmt.Sprintf(
+					"0 / %d",
+					cumulativeNumeroAtt,
+				)
+			case cumulativeRequiredAvailability != 0:
+				resumeAtt = fmt.Sprintf(
+					"%d / ?",
+					cumulativeRequiredAvailability,
+				)
+			}
+		}
+
+		if resumeAtt != "" && (resumeAtt != cumulativeResumeAtt || forceNumeroAttRepaint) {
+			cumulativeResumeAtt = resumeAtt
+
+			cursor.MoveRight(1)
+			if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), resumeAtt); err != nil {
+				return zero, err
+			}
+			cursor.MoveLeft(1)
+		}
+
 		cursor.MoveBottom(1)
 		numOfTimeRows++
 
@@ -335,6 +382,8 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 				}
 				if len(act.Warnings()) > 0 {
 					style = style.WithWarning()
+				} else if !act.AnyConfirmed && ctx.Config.EnableUnconfirmedHighlight {
+					style = c.styleRegister.Merge(style, c.styleRegister.HighlightForUnconfirmedStyle())
 				}
 
 				// decide how to annotate this activity group depending on available rows/columns
@@ -401,13 +450,28 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 							return zero, err
 						}
 
+						var additionalStyle *RegisteredStyleV2
+
 						if len(groupRef.Highlights) > 0 {
-							if additionalStyle := highlightsToStyle(c, groupRef.Highlights); additionalStyle != nil {
-								additionalStyles = append(additionalStyles, designatedStyling{
+							additionalStyle = c.styleRegister.Merge(
+								additionalStyle,
+								highlightsToStyle(c, groupRef.Highlights),
+							)
+						}
+						if ctx.Config.EnableUnconfirmedHighlight {
+							if singleActivity.Confirmed != nil && !*singleActivity.Confirmed {
+								additionalStyle = c.styleRegister.Merge(
 									additionalStyle,
-									excel.NewCellBox(cellForThis, cellForThis),
-								})
+									c.styleRegister.HighlightForUnconfirmedStyle(),
+								)
 							}
+						}
+
+						if additionalStyle != nil {
+							additionalStyles = append(additionalStyles, designatedStyling{
+								additionalStyle,
+								excel.NewCellBox(cellForThis, cellForThis),
+							})
 						}
 
 						cellComment := buildContentOfActivityCommentForSingleGroupOfGroupedActivity(c, singleActivity)
@@ -471,10 +535,25 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 							}
 						}
 
-						if len(groupRef.Highlights) > 0 {
-							if additionalStyle := highlightsToStyle(c, groupRef.Highlights); additionalStyle != nil {
-								style = c.styleRegister.Merge(style, additionalStyle)
+						var additionalStyle *RegisteredStyleV2
+
+						if ctx.Config.EnableUnconfirmedHighlight {
+							if singleAct.Confirmed != nil && !*singleAct.Confirmed {
+								additionalStyle = c.styleRegister.Merge(
+									additionalStyle,
+									c.styleRegister.HighlightForUnconfirmedStyle(),
+								)
 							}
+						}
+						if len(groupRef.Highlights) > 0 {
+							additionalStyle = c.styleRegister.Merge(
+								additionalStyle,
+								highlightsToStyle(c, groupRef.Highlights),
+							)
+						}
+
+						if additionalStyle != nil {
+							style = c.styleRegister.Merge(style, additionalStyle)
 						}
 					}
 

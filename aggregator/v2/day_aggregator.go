@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/parser/v2"
@@ -30,12 +31,20 @@ func AggregateByCompetenceDay(_ config.WorkflowContext, rows []Row, anagraphicsR
 		group, ok := index[key]
 		if !ok {
 			group = &scheduleForSingleDay{
-				Day:            rowCopy.CompetenceDate,
-				Rows:           nil,
-				VisitingGroups: nil,
+				Day:                   rowCopy.CompetenceDate,
+				Rows:                  nil,
+				VisitingGroups:        nil,
+				NumeroAttivitaMarkers: make(map[time.Time]int),
 			}
 			index[key] = group
 			grouped = append(grouped, group)
+		}
+
+		if row.InputRow.IsPlaceholderNumeroAttivita {
+			if !row.InputRow.StartTime.IsZero() {
+				group.NumeroAttivitaMarkers[row.InputRow.StartTime]++
+			}
+			continue
 		}
 
 		if !row.InputRow.StartTime.IsZero() && (group.StartAt.IsZero() || row.InputRow.StartTime.Before(group.StartAt)) {

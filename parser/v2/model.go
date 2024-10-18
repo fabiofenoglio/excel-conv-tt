@@ -24,6 +24,7 @@ type Room struct {
 	GroupActivities                bool   `json:"-"`
 	ShowActivityNamesInside        bool   `json:"-"`
 	AlwaysShow                     bool   `json:"-"`
+	DoesNotRequireOperator         bool   `json:"-"`
 }
 
 type Row struct {
@@ -32,7 +33,8 @@ type Row struct {
 	OperatorCode      string
 	VisitingGroupCode string
 	ActivityCode      string
-	Warnings          []Warning
+
+	Warnings []Warning
 }
 
 type Operator struct {

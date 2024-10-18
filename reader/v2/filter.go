@@ -12,18 +12,11 @@ func Filter(rows []Row) ([]Row, error) {
 	out := make([]Row, 0, len(rows))
 
 	for _, row := range rows {
-		if filterRow(row) {
-			out = append(out, row)
+		if row.Activity != "" && containsNAttivitaRegex.MatchString(row.Activity) {
+			row.IsPlaceholderNumeroAttivita = true
 		}
+		out = append(out, row)
 	}
 
 	return out, nil
-}
-
-func filterRow(r Row) bool {
-	if r.Activity != "" && containsNAttivitaRegex.MatchString(r.Activity) {
-		return false
-	}
-
-	return true
 }

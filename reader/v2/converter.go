@@ -62,6 +62,14 @@ func convertRow(r Row) (Row, error) {
 		}
 	}
 
+	if strings.TrimSpace(r.ConfirmedRawString) != "" {
+		confirmed, err := parseLocalizedBoolean(r.ConfirmedRawString)
+		if err != nil {
+			return Row{}, errors.Wrapf(err, "il valore del campo 'confermata' ('%s') non e' valido", r.ConfirmedRawString)
+		}
+		r.Confirmed = confirmed
+	}
+
 	return r, nil
 }
 
@@ -111,4 +119,22 @@ func getStartAndEndTimes(r Row) (time.Time, time.Time, time.Time, error) {
 	}
 
 	return dataHalfDay, start, end, nil
+}
+
+func parseLocalizedBoolean(raw string) (*bool, error) {
+	raw = strings.ToLower(strings.TrimSpace(raw))
+	if raw == "" {
+		return nil, nil
+	}
+
+	if strings.HasPrefix(raw, "s") {
+		v := true
+		return &v, nil
+	}
+	if strings.HasPrefix(raw, "n") {
+		v := false
+		return &v, nil
+	}
+
+	return nil, errors.Errorf("il valore '%s' non è un flag booleano valido", raw)
 }

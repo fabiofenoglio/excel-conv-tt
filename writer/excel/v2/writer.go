@@ -71,8 +71,13 @@ func (w *WriterImpl) Write(ctx config.WorkflowContext, parsed aggregator2.Output
 		styleRegister:  NewStyleRegister(f),
 	}
 
+	word := "settimana"
+	if len(groupedByStartDate) >= 9 {
+		word = "periodo"
+	}
 	sheetName := fmt.Sprintf(
-		"settimana %s-%s",
+		"%s %s-%s",
+		word,
 		groupedByStartDate[0].Day.Format("0201"),
 		groupedByStartDate[len(groupedByStartDate)-1].Day.Format("0201"),
 	)

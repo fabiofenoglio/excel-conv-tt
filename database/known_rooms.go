@@ -12,12 +12,19 @@ func init() {
 	knownRoomAliasMap = make(map[string]string)
 
 	registerKnownRooms(KnownRoom{
-		Code:            "navetta",
-		Name:            "Navetta",
-		BackgroundColor: "#D9E9FA",
-		Slots:           5,
-		PreferredOrder:  -9,
-		Hide:            true,
+		Code:                   "navetta",
+		Name:                   "Navetta",
+		BackgroundColor:        "#D9E9FA",
+		Slots:                  5,
+		PreferredOrder:         -9,
+		Hide:                   true,
+		DoesNotRequireOperator: true,
+	}, KnownRoom{
+		Code:                   "parcheggio",
+		Name:                   "Parcheggio",
+		BackgroundColor:        "#D9E9FA",
+		PreferredOrder:         10,
+		DoesNotRequireOperator: true,
 	}, KnownRoom{
 		Code:            "museo",
 		Name:            "Museo",

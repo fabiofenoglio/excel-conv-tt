@@ -35,14 +35,17 @@ type Row struct {
 	NumPayingRawString       string `column:"paganti"`
 	NumFreeRawString         string `column:"gratuiti"`
 	NumAccompanyingRawString string `column:"accompagnatori"`
+	ConfirmedRawString       string `column:"confermata"`
 
 	// campi che saranno esposti dopo apposita conversione
 
-	Date            time.Time
-	StartTime       time.Time
-	EndTime         time.Time
-	Duration        time.Duration
-	NumPaying       int
-	NumFree         int
-	NumAccompanying int
+	Date                        time.Time
+	StartTime                   time.Time
+	EndTime                     time.Time
+	Duration                    time.Duration
+	NumPaying                   int
+	NumFree                     int
+	NumAccompanying             int
+	Confirmed                   *bool
+	IsPlaceholderNumeroAttivita bool
 }

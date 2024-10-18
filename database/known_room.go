@@ -15,4 +15,5 @@ type KnownRoom struct {
 	Hide                           bool
 	GroupActivities                bool
 	AlwaysShow                     bool
+	DoesNotRequireOperator         bool
 }

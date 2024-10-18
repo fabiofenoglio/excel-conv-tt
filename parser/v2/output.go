@@ -35,6 +35,9 @@ type OutputRow struct {
 	VisitingGroupCode string
 	ActivityCode      string
 
+	Confirmed                   *bool
+	IsPlaceholderNumeroAttivita bool
+
 	Warnings []Warning
 
 	anagraphicsRef *OutputAnagraphics
@@ -61,9 +64,11 @@ func ToOutputRows(rows []Row, anagraphicsRef *OutputAnagraphics) []OutputRow {
 				PaymentAdvance:       input.PaymentAdvance,
 				PaymentAdvanceStatus: input.PaymentAdvanceStatus,
 			},
-			Warnings:       input.Warnings,
-			Bus:            input.Bus,
-			anagraphicsRef: anagraphicsRef,
+			Warnings:                    input.Warnings,
+			Bus:                         input.Bus,
+			Confirmed:                   input.Confirmed,
+			IsPlaceholderNumeroAttivita: input.IsPlaceholderNumeroAttivita,
+			anagraphicsRef:              anagraphicsRef,
 		})
 	}
 

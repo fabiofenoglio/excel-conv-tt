@@ -3,6 +3,7 @@ package aggregator
 import (
 	"github.com/fabiofenoglio/excelconv/config"
 	"github.com/fabiofenoglio/excelconv/parser/v2"
+	"time"
 )
 
 const (
@@ -19,11 +20,13 @@ func AggregateByRooomGroupsOnSameActivity(
 
 	for _, daySchedule := range days {
 		mapped := &ScheduleForSingleDayWithRoomsAndGroupedActivities{
-			Day:            daySchedule.Day,
-			VisitingGroups: daySchedule.VisitingGroups,
-			RoomsSchedule:  make([]ScheduleForSingleDayAndRoomWithGroupedActivities, 0, len(daySchedule.RoomsSchedule)),
-			StartAt:        daySchedule.StartAt,
-			EndAt:          daySchedule.EndAt,
+			Day:                                   daySchedule.Day,
+			VisitingGroups:                        daySchedule.VisitingGroups,
+			RoomsSchedule:                         make([]ScheduleForSingleDayAndRoomWithGroupedActivities, 0, len(daySchedule.RoomsSchedule)),
+			StartAt:                               daySchedule.StartAt,
+			EndAt:                                 daySchedule.EndAt,
+			NumeroAttivitaMarkers:                 daySchedule.NumeroAttivitaMarkers,
+			NumeroGruppiAttivitaConfermateMarkers: make(map[time.Time]int),
 		}
 
 		for _, roomSchedule := range daySchedule.RoomsSchedule {
@@ -43,6 +46,24 @@ func AggregateByRooomGroupsOnSameActivity(
 				cnt++
 			}
 		}
+	}
+
+	for dayIndex, dayEntry := range grouped {
+		for _, roomScheduleEntry := range dayEntry.RoomsSchedule {
+			room := anagraphicsRef.Rooms[roomScheduleEntry.RoomCode]
+			if room.DoesNotRequireOperator {
+				continue
+			}
+
+			for _, groupedActivityEntry := range roomScheduleEntry.GroupedActivities {
+				if groupedActivityEntry.AnyConfirmed {
+					dayEntry.NumeroGruppiAttivitaConfermateMarkers[groupedActivityEntry.StartTime]++
+					dayEntry.NumeroGruppiAttivitaConfermateMarkers[groupedActivityEntry.EndTime]--
+				}
+			}
+		}
+
+		grouped[dayIndex] = dayEntry
 	}
 
 	out := make([]ScheduleForSingleDayWithRoomsAndGroupedActivities, 0, len(grouped))
@@ -70,9 +91,10 @@ func aggregateScheduleForSingleDayAndRoomWithGroupedActivities(
 		if !room.GroupActivities || row.StartTime.IsZero() || row.EndTime.IsZero() || row.ActivityCode == "" {
 			// cannot be grouped
 			mapped.GroupedActivities = append(mapped.GroupedActivities, GroupedActivity{
-				StartTime: row.StartTime,
-				EndTime:   row.EndTime,
-				Rows:      []OutputRow{row},
+				StartTime:    row.StartTime,
+				EndTime:      row.EndTime,
+				Rows:         []OutputRow{row},
+				AnyConfirmed: row.Confirmed != nil && *row.Confirmed,
 			})
 			continue
 		}
@@ -89,9 +111,14 @@ func aggregateScheduleForSingleDayAndRoomWithGroupedActivities(
 				EndTime:   row.EndTime,
 				Rows:      []OutputRow{row},
 			})
-			indexMap[hash] = len(mapped.GroupedActivities) - 1
+			mappedAt = len(mapped.GroupedActivities) - 1
+			indexMap[hash] = mappedAt
 		} else {
 			mapped.GroupedActivities[mappedAt].Rows = append(mapped.GroupedActivities[mappedAt].Rows, row)
+		}
+
+		if row.Confirmed != nil && *row.Confirmed {
+			mapped.GroupedActivities[mappedAt].AnyConfirmed = true
 		}
 	}
 

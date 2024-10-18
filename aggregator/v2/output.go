@@ -24,6 +24,9 @@ type OutputRow struct {
 	VisitingGroupCode string
 	ActivityCode      string
 
+	Confirmed                   *bool
+	IsPlaceholderNumeroAttivita bool
+
 	Warnings []parser.Warning
 
 	CompetenceDate time.Time
@@ -48,12 +51,14 @@ func ToOutputRow(input Row) OutputRow {
 			PaymentAdvance:       input.InputRow.Payment.PaymentAdvance,
 			PaymentAdvanceStatus: input.InputRow.Payment.PaymentAdvanceStatus,
 		},
-		RoomCode:          input.InputRow.RoomCode,
-		OperatorCode:      input.InputRow.OperatorCode,
-		VisitingGroupCode: input.InputRow.VisitingGroupCode,
-		ActivityCode:      input.InputRow.ActivityCode,
-		CompetenceDate:    input.CompetenceDate,
-		Bus:               input.InputRow.Bus,
-		Warnings:          input.InputRow.Warnings,
+		RoomCode:                    input.InputRow.RoomCode,
+		OperatorCode:                input.InputRow.OperatorCode,
+		VisitingGroupCode:           input.InputRow.VisitingGroupCode,
+		ActivityCode:                input.InputRow.ActivityCode,
+		CompetenceDate:              input.CompetenceDate,
+		Bus:                         input.InputRow.Bus,
+		Warnings:                    input.InputRow.Warnings,
+		IsPlaceholderNumeroAttivita: input.InputRow.IsPlaceholderNumeroAttivita,
+		Confirmed:                   input.InputRow.Confirmed,
 	}
 }

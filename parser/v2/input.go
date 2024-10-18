@@ -25,6 +25,9 @@ type InputRow struct {
 	PaymentAdvanceStatus string
 	SpecialProjectName   string
 
+	Confirmed                   *bool
+	IsPlaceholderNumeroAttivita bool
+
 	// campi che verranno processati prima di essere esposti
 
 	schoolType      string
@@ -49,32 +52,34 @@ func ToInputRows(rows []reader.OutputRow) []InputRow {
 
 	for _, input := range rows {
 		out = append(out, InputRow{
-			ID:                        input.ID,
-			BookingCode:               input.BookingCode,
-			Date:                      input.Date,
-			operatorRawString:         input.Operator,
-			roomRawString:             input.Room,
-			activityRawString:         input.Activity,
-			StartTime:                 input.StartTime,
-			EndTime:                   input.EndTime,
-			Duration:                  input.Duration,
-			numPaying:                 input.NumPaying,
-			numFree:                   input.NumFree,
-			numAccompanying:           input.NumAccompanying,
-			activityLanguageRawString: input.ActivityLanguage,
-			BookingNote:               input.BookingNote,
-			OperatorNote:              input.OperatorNote,
-			schoolType:                input.SchoolType,
-			schoolName:                input.SchoolName,
-			class:                     input.Class,
-			classSection:              input.ClassSection,
-			classTeacher:              input.ClassTeacher,
-			classRefEmail:             input.ClassRefEmail,
-			activityTypeRawString:     input.Type,
-			Bus:                       input.Bus,
-			PaymentAdvance:            input.PaymentAdvance,
-			PaymentAdvanceStatus:      input.PaymentAdvanceStatus,
-			SpecialProjectName:        input.SpecialProjectName,
+			ID:                          input.ID,
+			BookingCode:                 input.BookingCode,
+			Date:                        input.Date,
+			operatorRawString:           input.Operator,
+			roomRawString:               input.Room,
+			activityRawString:           input.Activity,
+			StartTime:                   input.StartTime,
+			EndTime:                     input.EndTime,
+			Duration:                    input.Duration,
+			numPaying:                   input.NumPaying,
+			numFree:                     input.NumFree,
+			numAccompanying:             input.NumAccompanying,
+			activityLanguageRawString:   input.ActivityLanguage,
+			BookingNote:                 input.BookingNote,
+			OperatorNote:                input.OperatorNote,
+			schoolType:                  input.SchoolType,
+			schoolName:                  input.SchoolName,
+			class:                       input.Class,
+			classSection:                input.ClassSection,
+			classTeacher:                input.ClassTeacher,
+			classRefEmail:               input.ClassRefEmail,
+			activityTypeRawString:       input.Type,
+			Bus:                         input.Bus,
+			PaymentAdvance:              input.PaymentAdvance,
+			PaymentAdvanceStatus:        input.PaymentAdvanceStatus,
+			SpecialProjectName:          input.SpecialProjectName,
+			Confirmed:                   input.Confirmed,
+			IsPlaceholderNumeroAttivita: input.IsPlaceholderNumeroAttivita,
 		})
 	}
 

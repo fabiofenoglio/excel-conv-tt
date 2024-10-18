@@ -19,11 +19,13 @@ func AggregateByRooomGroupSlotInRoom(
 
 	for _, daySchedule := range days {
 		mapped := &ScheduleForSingleDayWithRoomsAndGroupSlots{
-			Day:            daySchedule.Day,
-			VisitingGroups: daySchedule.VisitingGroups,
-			RoomsSchedule:  make([]ScheduleForSingleDayAndRoomWithGroupSlots, 0, len(daySchedule.RoomsSchedule)),
-			StartAt:        daySchedule.StartAt,
-			EndAt:          daySchedule.EndAt,
+			Day:                                   daySchedule.Day,
+			VisitingGroups:                        daySchedule.VisitingGroups,
+			RoomsSchedule:                         make([]ScheduleForSingleDayAndRoomWithGroupSlots, 0, len(daySchedule.RoomsSchedule)),
+			StartAt:                               daySchedule.StartAt,
+			EndAt:                                 daySchedule.EndAt,
+			NumeroAttivitaMarkers:                 daySchedule.NumeroAttivitaMarkers,
+			NumeroGruppiAttivitaConfermateMarkers: daySchedule.NumeroGruppiAttivitaConfermateMarkers,
 		}
 
 		for _, roomSchedule := range daySchedule.RoomsSchedule {

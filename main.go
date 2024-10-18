@@ -240,6 +240,7 @@ func run(ctx context.Context, args config.Args, _ config.EnvConfig, log *logrus.
 		Logger:  log.WithContext(ctx),
 		Config: config.WorkflowContextConfig{
 			EnableMissingOperatorsWarning: args.EnableMissingOperatorsWarning,
+			EnableUnconfirmedHighlight:    args.Debug,
 		},
 	}
 

@@ -24,6 +24,9 @@ type InputRow struct {
 	VisitingGroupCode string
 	ActivityCode      string
 
+	Confirmed                   *bool
+	IsPlaceholderNumeroAttivita bool
+
 	Warnings []parser.Warning
 }
 
@@ -52,12 +55,14 @@ func ToInput(input parser.Output) Input {
 				PaymentAdvance:       r.Payment.PaymentAdvance,
 				PaymentAdvanceStatus: r.Payment.PaymentAdvanceStatus,
 			},
-			RoomCode:          r.RoomCode,
-			OperatorCode:      r.OperatorCode,
-			VisitingGroupCode: r.VisitingGroupCode,
-			ActivityCode:      r.ActivityCode,
-			Bus:               r.Bus,
-			Warnings:          r.Warnings,
+			RoomCode:                    r.RoomCode,
+			OperatorCode:                r.OperatorCode,
+			VisitingGroupCode:           r.VisitingGroupCode,
+			ActivityCode:                r.ActivityCode,
+			Bus:                         r.Bus,
+			Warnings:                    r.Warnings,
+			IsPlaceholderNumeroAttivita: r.IsPlaceholderNumeroAttivita,
+			Confirmed:                   r.Confirmed,
 		})
 	}
 
