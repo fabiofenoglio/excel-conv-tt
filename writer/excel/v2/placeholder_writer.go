@@ -24,9 +24,9 @@ func writePlaceholdersForDay(c WriteContext, startCell excel.Cell, availableColu
 		{emoji: "🛠", text: "Allest. / disallest."},
 		{emoji: "🚷", text: "Assenti"},
 		{emoji: "📝", text: "Appuntamenti / note"},
-		{emoji: "🚨", text: "Responsabile emergenza"},
+		{emoji: "🚨", text: "Responsabile emergenza / antincendio"},
 		{emoji: "🧯", text: "Addetto antincendio / impianti"},
-		{emoji: "⛑", text: "Addetto antincendio / primo soccorso"},
+		{emoji: "⛑", text: "Primo soccorso"},
 		{emoji: "🚌", text: "Orari navetta dalle - alle"},
 	}
 
@@ -35,7 +35,7 @@ func writePlaceholdersForDay(c WriteContext, startCell excel.Cell, availableColu
 	lastColumn := startCell.Column() + availableColumns - 1
 
 	for _, rowToWrite := range rowsToWrite {
-		valueCursors := cursor.AtRight(10)
+		valueCursors := cursor.AtRight(11)
 
 		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), rowToWrite.emoji); err != nil {
 			return err

@@ -16,7 +16,7 @@ check:
 	make test
 build-release:
 	make check
-	goreleaser release --snapshot --rm-dist
+	goreleaser release --snapshot --clean
 push-release:
 	make check
-	goreleaser release --rm-dist
+	goreleaser release --clean
