@@ -33,7 +33,7 @@ func logErrorWaitAndExit(err error) {
 
 func waitForUserPress() {
 	fmt.Println("\nPREMI UN TASTO PER CONTINUARE ...")
-	fmt.Scanln()
+	_, _ = fmt.Scanln()
 }
 
 func main() {
