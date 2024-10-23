@@ -140,7 +140,7 @@ func attemptAutoUpdate(envConfig config.EnvConfig, sentryAvailable bool) {
 	log.Info("******************************")
 	log.Infof("il programma è stato aggiornato automaticamente alla versione più recente: %s", latest.Version)
 	fmt.Println("")
-	log.Infof(latest.ReleaseNotes)
+	log.Info(latest.ReleaseNotes)
 	fmt.Println("")
 	log.Info("ATTENZIONE: è necessario avviare nuovamente il programma per eseguirlo con la nuova versione")
 
