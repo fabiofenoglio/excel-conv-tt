@@ -337,7 +337,7 @@ var (
 		},
 		Font: defaultFontBuilder(&FontOverride{
 			ForceBold:  true,
-			SizeOffset: 2,
+			SizeOffset: 1,
 		}),
 	}
 	toBeFilledStyle = &StyleDefV2{
