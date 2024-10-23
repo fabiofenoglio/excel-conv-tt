@@ -26,6 +26,7 @@ func AggregateByRooomGroupSlotInRoom(
 			EndAt:                                 daySchedule.EndAt,
 			NumeroAttivitaMarkers:                 daySchedule.NumeroAttivitaMarkers,
 			NumeroGruppiAttivitaConfermateMarkers: daySchedule.NumeroGruppiAttivitaConfermateMarkers,
+			NumeroAttivitaConfermateMarkers:       daySchedule.NumeroAttivitaConfermateMarkers,
 		}
 
 		for _, roomSchedule := range daySchedule.RoomsSchedule {

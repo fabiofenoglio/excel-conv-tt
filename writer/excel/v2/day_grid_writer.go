@@ -149,75 +149,48 @@ func writeDayGrid(ctx config.WorkflowContext, c WriteContext, day aggregator2.Sc
 	numOfTimeRows := uint(0)
 	log.Debugf("writing time columns starting from %s", currentTime.String())
 
-	cumulativeRequiredAvailability := 0
-	cumulativeNumeroAtt := 0
-	cumulativeResumeAtt := ""
-
 	for {
 		effectiveTime := relativeToDay(currentTime, day.Day)
 
-		show := true
-		if minHourToShowForThisDay.IsAfter(c.minHour) && effectiveTime.IsBefore(minHourToShowForThisDay) {
-			show = false
-		}
-		if maxHourToShowForThisDay.IsBefore(c.maxHour) && effectiveTime.IsAfter(maxHourToShowForThisDay) {
-			show = false
-		}
-
-		toWrite := "--"
-		if show {
-			toWrite = currentTime.Format(layoutTimeOnlyInReadableFormat)
-		}
-
-		if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
-			return zero, err
-		}
-		if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), boxCellHeight); err != nil {
-			return zero, err
-		}
-
-		forceNumeroAttRepaint := false
-		if day.NumeroGruppiAttivitaConfermateMarkers[currentTime] != 0 {
-			cumulativeRequiredAvailability += day.NumeroGruppiAttivitaConfermateMarkers[currentTime]
-		}
-		if day.NumeroAttivitaMarkers[currentTime] > 0 {
-			forceNumeroAttRepaint = true
-			cumulativeNumeroAtt = day.NumeroAttivitaMarkers[currentTime]
-		}
-
-		var resumeAtt string
-		if cumulativeNumeroAtt != 0 || cumulativeRequiredAvailability != 0 {
-			switch {
-			case cumulativeNumeroAtt != 0 && cumulativeRequiredAvailability != 0:
-				resumeAtt = fmt.Sprintf(
+		{
+			if day.NumeroAttivitaMarkers[currentTime] > 0 {
+				if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), fmt.Sprintf(
 					"%d / %d",
-					cumulativeRequiredAvailability,
-					cumulativeNumeroAtt,
-				)
-			case cumulativeNumeroAtt != 0:
-				resumeAtt = fmt.Sprintf(
-					"0 / %d",
-					cumulativeNumeroAtt,
-				)
-			case cumulativeRequiredAvailability != 0:
-				resumeAtt = fmt.Sprintf(
-					"%d / ?",
-					cumulativeRequiredAvailability,
-				)
+					day.NumeroAttivitaConfermateMarkers[currentTime],
+					day.NumeroAttivitaMarkers[currentTime],
+				)); err != nil {
+					return zero, err
+				}
 			}
 		}
 
-		if resumeAtt != "" && (resumeAtt != cumulativeResumeAtt || forceNumeroAttRepaint) {
-			cumulativeResumeAtt = resumeAtt
+		cursor.MoveRight(1)
 
-			cursor.MoveRight(1)
-			if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), resumeAtt); err != nil {
+		{
+			show := true
+			if minHourToShowForThisDay.IsAfter(c.minHour) && effectiveTime.IsBefore(minHourToShowForThisDay) {
+				show = false
+			}
+			if maxHourToShowForThisDay.IsBefore(c.maxHour) && effectiveTime.IsAfter(maxHourToShowForThisDay) {
+				show = false
+			}
+
+			toWrite := "--"
+			if show {
+				toWrite = currentTime.Format(layoutTimeOnlyInReadableFormat)
+			}
+
+			if err := f.SetCellValue(cursor.SheetName(), cursor.Code(), toWrite); err != nil {
 				return zero, err
 			}
-			cursor.MoveLeft(1)
+			if err := f.SetRowHeight(cursor.SheetName(), int(cursor.Row()), boxCellHeight); err != nil {
+				return zero, err
+			}
 		}
 
+		cursor.MoveLeft(1)
 		cursor.MoveBottom(1)
+
 		numOfTimeRows++
 
 		currentTime = currentTime.Add(time.Duration(c.minutesStep) * time.Minute)

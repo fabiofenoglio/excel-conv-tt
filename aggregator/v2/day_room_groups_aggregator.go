@@ -26,6 +26,7 @@ func AggregateByRooomGroupsOnSameActivity(
 			StartAt:                               daySchedule.StartAt,
 			EndAt:                                 daySchedule.EndAt,
 			NumeroAttivitaMarkers:                 daySchedule.NumeroAttivitaMarkers,
+			NumeroAttivitaConfermateMarkers:       daySchedule.NumeroAttivitaConfermateMarkers,
 			NumeroGruppiAttivitaConfermateMarkers: make(map[time.Time]int),
 		}
 

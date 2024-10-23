@@ -55,21 +55,23 @@ type VisitingGroupInDay struct {
 }
 
 type scheduleForSingleDay struct {
-	Day                   time.Time
-	Rows                  []Row
-	VisitingGroups        []VisitingGroupInDay
-	StartAt               time.Time
-	EndAt                 time.Time
-	NumeroAttivitaMarkers map[time.Time]int
+	Day                             time.Time
+	Rows                            []Row
+	VisitingGroups                  []VisitingGroupInDay
+	StartAt                         time.Time
+	EndAt                           time.Time
+	NumeroAttivitaMarkers           map[time.Time]int
+	NumeroAttivitaConfermateMarkers map[time.Time]int
 }
 
 type ScheduleForSingleDayWithRooms struct {
-	Day                   time.Time
-	VisitingGroups        []VisitingGroupInDay
-	RoomsSchedule         []ScheduleForSingleDayAndRoom
-	StartAt               time.Time
-	EndAt                 time.Time
-	NumeroAttivitaMarkers map[time.Time]int
+	Day                             time.Time
+	VisitingGroups                  []VisitingGroupInDay
+	RoomsSchedule                   []ScheduleForSingleDayAndRoom
+	StartAt                         time.Time
+	EndAt                           time.Time
+	NumeroAttivitaMarkers           map[time.Time]int
+	NumeroAttivitaConfermateMarkers map[time.Time]int
 }
 
 type ScheduleForSingleDayAndRoom struct {
@@ -84,6 +86,7 @@ type ScheduleForSingleDayWithRoomsAndGroupedActivities struct {
 	StartAt                               time.Time
 	EndAt                                 time.Time
 	NumeroAttivitaMarkers                 map[time.Time]int
+	NumeroAttivitaConfermateMarkers       map[time.Time]int
 	NumeroGruppiAttivitaConfermateMarkers map[time.Time]int
 }
 
@@ -190,6 +193,7 @@ type ScheduleForSingleDayWithRoomsAndGroupSlots struct {
 	StartAt                               time.Time
 	EndAt                                 time.Time
 	NumeroAttivitaMarkers                 map[time.Time]int
+	NumeroAttivitaConfermateMarkers       map[time.Time]int
 	NumeroGruppiAttivitaConfermateMarkers map[time.Time]int
 }
 

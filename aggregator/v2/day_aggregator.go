@@ -31,10 +31,11 @@ func AggregateByCompetenceDay(_ config.WorkflowContext, rows []Row, anagraphicsR
 		group, ok := index[key]
 		if !ok {
 			group = &scheduleForSingleDay{
-				Day:                   rowCopy.CompetenceDate,
-				Rows:                  nil,
-				VisitingGroups:        nil,
-				NumeroAttivitaMarkers: make(map[time.Time]int),
+				Day:                             rowCopy.CompetenceDate,
+				Rows:                            nil,
+				VisitingGroups:                  nil,
+				NumeroAttivitaMarkers:           make(map[time.Time]int),
+				NumeroAttivitaConfermateMarkers: make(map[time.Time]int),
 			}
 			index[key] = group
 			grouped = append(grouped, group)
@@ -43,6 +44,9 @@ func AggregateByCompetenceDay(_ config.WorkflowContext, rows []Row, anagraphicsR
 		if row.InputRow.IsPlaceholderNumeroAttivita {
 			if !row.InputRow.StartTime.IsZero() {
 				group.NumeroAttivitaMarkers[row.InputRow.StartTime]++
+				if row.InputRow.Confirmed != nil && *row.InputRow.Confirmed {
+					group.NumeroAttivitaConfermateMarkers[row.InputRow.StartTime]++
+				}
 			}
 			continue
 		}
