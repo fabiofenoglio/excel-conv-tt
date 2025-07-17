@@ -12,7 +12,7 @@ type Row struct {
 	BookingCode          string `column:"codice" required:"true"`
 	Operator             string `column:"educatore" required:"true"`
 	Room                 string `column:"aula" required:"true"`
-	Activity             string `column:"attività" required:"true"`
+	Activity             string `column:"evento" required:"true"`
 	ActivityLanguage     string `column:"lingua dell'attività"`
 	BookingNote          string `column:"nota prenotazione"`
 	OperatorNote         string `column:"nota operatore"`
