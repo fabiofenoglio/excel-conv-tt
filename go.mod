@@ -1,6 +1,6 @@
 module github.com/fabiofenoglio/excelconv
 
-go 1.20
+go 1.24
 
 require (
 	github.com/adrg/strutil v0.3.1
